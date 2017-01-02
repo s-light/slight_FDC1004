@@ -129,7 +129,7 @@ public:
     // void update_interval_set(uint32_t interval);
     // uint32_t update_interval_get();
 
-    void touch_event_set_callback(callback_t);
+    void sensor_event_set_callback(callback_t);
 
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,10 +176,17 @@ public:
     //          / 2^19
     //      ) + C_offset
 
-    uint32_t read_measurement(uint8_t measurement_id);
-    uint32_t read_measurement(measurement_id_t measurement_id);
-    float read_capacitance(uint8_t measurement_id);
-    float read_capacitance(measurement_id_t measurement_id);
+    uint32_t measurement_read(uint8_t measurement_id);
+    uint32_t measurement_read(measurement_id_t measurement_id);
+    float capacitance_read(uint8_t measurement_id);
+    float capacitance_read(measurement_id_t measurement_id);
+
+    uint32_t measurement_get(uint8_t measurement_id);
+    uint32_t measurement_get(measurement_id_t measurement_id);
+    float capacitance_get(uint8_t measurement_id);
+    float capacitance_get(measurement_id_t measurement_id);
+
+    float convert_measurement_to_capacitance(uint32_t measurement_value);
 
     // 8.6.2 Measurement Configuration Registers
     // read and write
@@ -237,6 +244,13 @@ public:
         config_chB_DISPABLED = 0b111,
     };
 
+    // read & write from & to chip
+    uint16_t measurement_config_read(uint8_t measurement_id);
+    uint16_t measurement_config_read(measurement_id_t measurement_id);
+    void measurement_config_write(uint8_t measurement_id);
+    void measurement_config_write(measurement_id_t measurement_id);
+
+    // get internal stored values
     // full register
     uint16_t measurement_config_get(uint8_t measurement_id);
     uint16_t measurement_config_get(measurement_id_t measurement_id);
@@ -374,6 +388,10 @@ public:
         repeate_rate_400Ss = 0b011,
     };
 
+    // read & write to chip
+    uint16_t fdc_config_read();
+    void fdc_config_write();
+
     // full register
     uint16_t fdc_config_get();
     void fdc_config_set(uint16_t value);
@@ -400,7 +418,7 @@ public:
     void measurement_rate_set(uint8_t value);
 
     // device reset
-    boolean soft_reset_get();
+    boolean soft_reset_read();
     void soft_reset();
 
 
@@ -470,6 +488,12 @@ public:
         uint8_t reg_shift
     );
 
+    uint8_t get_register16bit_part(
+        uint16_t reg_value,
+        uint16_t reg_mask,
+        uint8_t reg_shift
+    );
+
     // void write_register_part(
     //     register_name_t reg_name,
     //     uint8_t reg_mask,
@@ -478,6 +502,13 @@ public:
     // );
     void write_register16bit_part(
         register_name_t reg_name,
+        uint16_t reg_mask,
+        uint8_t reg_shift,
+        uint8_t value
+    );
+
+    uint16_t set_register16bit_part(
+        uint16_t reg_value,
         uint16_t reg_mask,
         uint8_t reg_shift,
         uint8_t value
@@ -503,9 +534,9 @@ private:
     // private functions
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    void touch_status_update();
+    void sensor_status_update();
 
-    void touch_event_callback();
+    void sensor_event_callback();
 
     // write helper
     void switch_mode_temporarily_to_allow_write();
@@ -558,7 +589,7 @@ private:
     bool ready;
     twi_state_t twi_state;
 
-    const uint8_t twi_address = 0x50;
+    static const uint8_t twi_address = 0x50;
 
     uint8_t touch_status;
     uint8_t touch_status_old;
@@ -567,7 +598,20 @@ private:
     uint32_t timestamp_lastread;
     uint32_t update_interval;
 
-    callback_t callback_touch_event;
+    callback_t callback_sensor_event;
+
+    // internal storage of register settings
+    // defaults = datasheet/chip Reset Values
+    uint16_t _reg_FDC_CONFIG = 0;
+    uint16_t _reg_MEASn_CONFIG[4] = {
+        0x1C00,
+        0x1C00,
+        0x1C00,
+        0x1C00
+    };
+
+    uint32_t _reg_MEASn_VALUE[4] = {0, 0, 0, 0};
+
 
 };  // class slight_FDC1004
 

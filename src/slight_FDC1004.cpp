@@ -76,7 +76,7 @@ bool slight_FDC1004::begin() {
 }
 
 void slight_FDC1004::update() {
-    touch_status_update();
+    sensor_status_update();
 }
 
 // void slight_FDC1004::configuration_load_defaults() {
@@ -104,14 +104,14 @@ void slight_FDC1004::update() {
 // }
 
 
-void slight_FDC1004::touch_event_set_callback(
+void slight_FDC1004::sensor_event_set_callback(
     callback_t callback_function
 ) {
-    callback_touch_event = callback_function;
+    callback_sensor_event = callback_function;
 }
 
 // private
-void slight_FDC1004::touch_status_update() {
+void slight_FDC1004::sensor_status_update() {
     // check if sensor is present
     if (ready) {
         // poll sensor every 90ms
@@ -137,7 +137,7 @@ void slight_FDC1004::touch_status_update() {
         //         touch_status_old = touch_status;
         //
         //         // change in touch detected
-        //         touch_event_callback();
+        //         sensor_event_callback();
         //         // Serial.print(F("touched: "));
         //         // for (size_t i=0; i<8; i++) {
         //         //     if (touch_status & (1 << i)) {
@@ -153,9 +153,9 @@ void slight_FDC1004::touch_status_update() {
 }
 
 
-void slight_FDC1004::touch_event_callback() {
-    if (callback_touch_event) {
-        callback_touch_event(this);
+void slight_FDC1004::sensor_event_callback() {
+    if (callback_sensor_event) {
+        callback_sensor_event(this);
     }
 }
 
@@ -190,29 +190,59 @@ void slight_FDC1004::touch_event_callback() {
 //          / 2^19
 //      ) + C_offset
 
-uint32_t slight_FDC1004::read_measurement(uint8_t measurement_id) {
-    return read_measurement(
+uint32_t slight_FDC1004::measurement_read(uint8_t measurement_id) {
+    return measurement_read(
         measurement_id_bounded(measurement_id)
     );
 }
 
-uint32_t slight_FDC1004::read_measurement(measurement_id_t measurement_id) {
+uint32_t slight_FDC1004::measurement_read(measurement_id_t measurement_id) {
     uint32_t value = 0;
+    // read 32bit value in two 16bit steps and combine
     value = read_register16bit(REG_MEAS1_LSB);
     value |= read_register16bit(REG_MEAS1_MSB) << 16;
+    _reg_MEASn_VALUE[measurement_id] = value;
     return value;
 }
 
-float slight_FDC1004::read_capacitance(uint8_t measurement_id) {
-    return read_capacitance(
+float slight_FDC1004::capacitance_read(uint8_t measurement_id) {
+    return capacitance_read(
         measurement_id_bounded(measurement_id)
     );
 }
 
-float slight_FDC1004::read_capacitance(measurement_id_t measurement_id) {
-    uint32_t raw = read_measurement(measurement_id);
+float slight_FDC1004::capacitance_read(measurement_id_t measurement_id) {
+    return convert_measurement_to_capacitance(
+        measurement_read(measurement_id)
+    );
+}
+
+
+uint32_t slight_FDC1004::measurement_get(uint8_t measurement_id) {
+    return measurement_get(
+        measurement_id_bounded(measurement_id)
+    );
+}
+
+uint32_t slight_FDC1004::measurement_get(measurement_id_t measurement_id) {
+    return _reg_MEASn_VALUE[measurement_id];
+}
+
+float slight_FDC1004::capacitance_get(uint8_t measurement_id) {
+    return capacitance_get(
+        measurement_id_bounded(measurement_id)
+    );
+}
+
+float slight_FDC1004::capacitance_get(measurement_id_t measurement_id) {
+    return convert_measurement_to_capacitance(
+        measurement_get(measurement_id)
+    );
+}
+
+
+float slight_FDC1004::convert_measurement_to_capacitance(uint32_t measurement_value) {
     float capacitance = 0.0;
-    // TODO: implement functionality
     // calculate capacitance from raw value.
     //  Capacitance (pf) =
     //      (
@@ -222,8 +252,8 @@ float slight_FDC1004::read_capacitance(measurement_id_t measurement_id) {
     uint32_t mask = 0b00000000011111111111111111111111;
     uint32_t mask_twocomp = (1 << 23);
     uint32_t temp = 0;
-    temp |= (raw & mask);
-    boolean twocomp = (raw & mask_twocomp);
+    temp |= (measurement_value & mask);
+    boolean twocomp = (measurement_value & mask_twocomp);
     temp |= twocomp << 31;
     return capacitance;
 }
@@ -260,31 +290,35 @@ float slight_FDC1004::read_capacitance(measurement_id_t measurement_id) {
 // configuration limitations:
 //     ChA != ChB
 //     ChA < ChB for differential measurement
-//
-// static const uint16_t measurement_config_RESERVED_mask = 0b0000000000011111;
-// static const uint8_t measurement_config_RESERVED_shift = 0;
-// static const uint16_t measurement_config_CAPDAC_mask = 0b0000001111100000;
-// static const uint8_t measurement_config_CAPDAC_shift = 0 + 5;
-// static const uint16_t measurement_config_chB_mask = 0b0001110000000000;
-// static const uint8_t measurement_config_chB_shift = 0 + 5 + 5;
-// static const uint16_t measurement_config_chA_mask = 0b1110000000000000;
-// static const uint8_t measurement_config_chA_shift = 0 + 5 + 5 + 3;
-//
-// enum measurement_config_chA_t {
-//     config_chA_CIN1 = 0b000,
-//     config_chA_CIN2 = 0b001,
-//     config_chA_CIN3 = 0b010,
-//     config_chA_CIN4 = 0b011,
-// };
-// enum measurement_config_chB_t {
-//     config_chB_CIN1 = 0b000,
-//     config_chB_CIN2 = 0b001,
-//     config_chB_CIN3 = 0b010,
-//     config_chB_CIN4 = 0b011,
-//     config_chB_CAPDAC = 0b100,
-//     config_chB_DISPABLED = 0b111,
-// };
 
+
+// read & write from & to chip
+uint16_t slight_FDC1004::measurement_config_read(uint8_t measurement_id) {
+    return measurement_config_read(
+        measurement_id_bounded(measurement_id)
+    );
+}
+
+uint16_t slight_FDC1004::measurement_config_read(measurement_id_t measurement_id) {
+    uint8_t reg = REG_MEAS1_CONFIG;
+    reg += measurement_id;
+    _reg_MEASn_CONFIG[measurement_id] = read_register16bit(reg);
+    return _reg_MEASn_CONFIG[measurement_id];
+}
+
+void slight_FDC1004::measurement_config_write(uint8_t measurement_id) {
+    measurement_config_write(
+        measurement_id_bounded(measurement_id)
+    );
+}
+
+void slight_FDC1004::measurement_config_write(measurement_id_t measurement_id) {
+    uint8_t reg = REG_MEAS1_CONFIG;
+    reg += measurement_id;
+    write_register16bit(reg, _reg_MEASn_CONFIG[measurement_id]);
+}
+
+// read & write to internal memory
 // full register
 uint16_t slight_FDC1004::measurement_config_get(uint8_t measurement_id) {
     return measurement_config_get(
@@ -293,9 +327,7 @@ uint16_t slight_FDC1004::measurement_config_get(uint8_t measurement_id) {
 }
 
 uint16_t slight_FDC1004::measurement_config_get(measurement_id_t measurement_id) {
-    uint8_t reg = REG_MEAS1_CONFIG;
-    reg += measurement_id;
-    return read_register16bit(reg);
+    return _reg_MEASn_CONFIG[measurement_id];
 }
 
 void slight_FDC1004::measurement_config_set(uint8_t measurement_id, uint16_t value) {
@@ -306,9 +338,7 @@ void slight_FDC1004::measurement_config_set(uint8_t measurement_id, uint16_t val
 }
 
 void slight_FDC1004::measurement_config_set(measurement_id_t measurement_id, uint16_t value) {
-    uint8_t reg = REG_MEAS1_CONFIG;
-    reg += measurement_id;
-    write_register16bit(reg, value);
+    _reg_MEASn_CONFIG[measurement_id] = value;
 }
 
 
@@ -324,10 +354,8 @@ slight_FDC1004::measurement_config_chA_t slight_FDC1004::measurement_config_chA_
 slight_FDC1004::measurement_config_chA_t slight_FDC1004::measurement_config_chA_get(
     measurement_id_t measurement_id
 ) {
-    uint8_t reg = REG_MEAS1_CONFIG;
-    reg += measurement_id;
-    return (measurement_config_chA_t)read_register16bit_part(
-        reg,
+    return (measurement_config_chA_t)get_register16bit_part(
+        _reg_MEASn_CONFIG[measurement_id],
         measurement_config_chA_mask,
         measurement_config_chA_shift
     );
@@ -347,10 +375,8 @@ void slight_FDC1004::measurement_config_chA_set(
     measurement_id_t measurement_id,
     measurement_config_chA_t config
 ) {
-    uint8_t reg = REG_MEAS1_CONFIG;
-    reg += measurement_id;
-    write_register16bit_part(
-        reg,
+    _reg_MEASn_CONFIG[measurement_id] = set_register16bit_part(
+        _reg_MEASn_CONFIG[measurement_id],
         measurement_config_chA_mask,
         measurement_config_chA_shift,
         config
@@ -370,10 +396,8 @@ slight_FDC1004::measurement_config_chB_t slight_FDC1004::measurement_config_chB_
 slight_FDC1004::measurement_config_chB_t slight_FDC1004::measurement_config_chB_get(
     measurement_id_t measurement_id
 ) {
-    uint8_t reg = REG_MEAS1_CONFIG;
-    reg += measurement_id;
-    return (measurement_config_chB_t)read_register16bit_part(
-        reg,
+    return (measurement_config_chB_t)get_register16bit_part(
+        _reg_MEASn_CONFIG[measurement_id],
         measurement_config_chB_mask,
         measurement_config_chB_shift
     );
@@ -393,10 +417,8 @@ void slight_FDC1004::measurement_config_chB_set(
     measurement_id_t measurement_id,
     measurement_config_chB_t config
 ) {
-    uint8_t reg = REG_MEAS1_CONFIG;
-    reg += measurement_id;
-    write_register16bit_part(
-        reg,
+    _reg_MEASn_CONFIG[measurement_id] = set_register16bit_part(
+        _reg_MEASn_CONFIG[measurement_id],
         measurement_config_chB_mask,
         measurement_config_chB_shift,
         config
@@ -416,10 +438,8 @@ uint8_t slight_FDC1004::measurement_config_CAPDAC_get(
 uint8_t slight_FDC1004::measurement_config_CAPDAC_get(
     measurement_id_t measurement_id
 ) {
-    uint8_t reg = REG_MEAS1_CONFIG;
-    reg += measurement_id;
-    return read_register16bit_part(
-        reg,
+    return get_register16bit_part(
+        _reg_MEASn_CONFIG[measurement_id],
         measurement_config_CAPDAC_mask,
         measurement_config_CAPDAC_shift
     );
@@ -457,10 +477,8 @@ void slight_FDC1004::measurement_config_CAPDAC_set(
     measurement_id_t measurement_id,
     uint8_t config
 ) {
-    uint8_t reg = REG_MEAS1_CONFIG;
-    reg += measurement_id;
-    write_register16bit_part(
-        reg,
+    _reg_MEASn_CONFIG[measurement_id] = set_register16bit_part(
+        _reg_MEASn_CONFIG[measurement_id],
         measurement_config_CAPDAC_mask,
         measurement_config_CAPDAC_shift,
         config
@@ -536,12 +554,21 @@ void slight_FDC1004::measurement_config_CAPDAC_set_capacitance(
 //         1 enabled
 
 // full register
+uint16_t slight_FDC1004::fdc_config_read() {
+    _reg_FDC_CONFIG = read_register16bit(REG_FDC_CONFIG);
+    return _reg_FDC_CONFIG;
+}
+
+void slight_FDC1004::fdc_config_write() {
+    write_register16bit(REG_FDC_CONFIG, _reg_FDC_CONFIG);
+}
+
 uint16_t slight_FDC1004::fdc_config_get() {
-    return read_register16bit(REG_FDC_CONFIG);
+    return _reg_FDC_CONFIG;
 }
 
 void slight_FDC1004::fdc_config_set(uint16_t value) {
-    write_register16bit(REG_FDC_CONFIG, value);
+    _reg_FDC_CONFIG = value;
 }
 
 
@@ -557,8 +584,8 @@ boolean slight_FDC1004::measurement_done_get(measurement_id_t measurement_id) {
     shift += measurement_id;
     uint16_t mask = mask_DONE_1;
     mask += measurement_id;
-    return (boolean)read_register16bit_part(
-        REG_FDC_CONFIG,
+    return (boolean)get_register16bit_part(
+        _reg_FDC_CONFIG,
         mask,
         shift
     );
@@ -577,8 +604,8 @@ boolean slight_FDC1004::measurement_init_get(measurement_id_t measurement_id) {
     shift += measurement_id;
     uint16_t mask = mask_INIT_1;
     mask += measurement_id;
-    return (boolean)read_register16bit_part(
-        REG_FDC_CONFIG,
+    return (boolean)get_register16bit_part(
+        _reg_FDC_CONFIG,
         mask,
         shift
     );
@@ -596,8 +623,8 @@ void slight_FDC1004::measurement_init_set(measurement_id_t measurement_id, boole
     shift += measurement_id;
     uint16_t mask = mask_INIT_1;
     mask += measurement_id;
-    write_register16bit_part(
-        REG_FDC_CONFIG,
+    set_register16bit_part(
+        _reg_FDC_CONFIG,
         mask,
         shift,
         value
@@ -620,16 +647,16 @@ void slight_FDC1004::measurement_init(measurement_id_t measurement_id) {
 
 // measurement repeate
 boolean slight_FDC1004::measurement_repeate_get() {
-    return read_register16bit_part(
-        REG_FDC_CONFIG,
+    return get_register16bit_part(
+        _reg_FDC_CONFIG,
         mask_REPEATE,
         shift_REPEATE
     );
 }
 
 void slight_FDC1004::measurement_repeate_set(boolean value) {
-    write_register16bit_part(
-        REG_FDC_CONFIG,
+    set_register16bit_part(
+        _reg_FDC_CONFIG,
         mask_REPEATE,
         shift_REPEATE,
         value
@@ -639,16 +666,16 @@ void slight_FDC1004::measurement_repeate_set(boolean value) {
 
 // measurement repeate rate
 slight_FDC1004::fdc_config_repeate_rate_t slight_FDC1004::measurement_rate_get() {
-    return (fdc_config_repeate_rate_t)read_register16bit_part(
-        REG_FDC_CONFIG,
+    return (fdc_config_repeate_rate_t)get_register16bit_part(
+        _reg_FDC_CONFIG,
         mask_RATE,
         shift_RATE
     );
 }
 
 void slight_FDC1004::measurement_rate_set(fdc_config_repeate_rate_t value) {
-    write_register16bit_part(
-        REG_FDC_CONFIG,
+    set_register16bit_part(
+        _reg_FDC_CONFIG,
         mask_RATE,
         shift_RATE,
         (uint8_t)value
@@ -679,7 +706,7 @@ void slight_FDC1004::measurement_rate_set(uint8_t value) {
 
 
 // device reset
-boolean slight_FDC1004::soft_reset_get() {
+boolean slight_FDC1004::soft_reset_read() {
     return read_register16bit_part(
         REG_FDC_CONFIG,
         mask_RESET,
@@ -995,6 +1022,20 @@ uint8_t slight_FDC1004::read_register16bit_part(
     );
 }
 
+
+uint8_t slight_FDC1004::get_register16bit_part(
+    uint16_t reg_value,
+    uint16_t reg_mask,
+    uint8_t reg_shift
+) {
+    // isolate bits
+    reg_value = reg_value & reg_mask;
+    // shift to correct bits.
+    reg_value = reg_value >> reg_shift;
+    // only values <8bit are returned.
+    return (uint8_t)reg_value;
+}
+
 // void slight_FDC1004::write_register_part(
 //     register_name_t reg_name,
 //     uint16_t reg_mask,
@@ -1022,6 +1063,22 @@ void slight_FDC1004::write_register16bit_part(
     );
 }
 
+uint16_t slight_FDC1004::set_register16bit_part(
+    uint16_t reg_value,
+    uint16_t reg_mask,
+    uint8_t reg_shift,
+    uint8_t value
+) {
+    value = value_limit(reg_mask, reg_shift, value);
+    // clear bits
+    reg_value = reg_value & (~reg_mask);
+    // set bits
+    reg_value = reg_value | (value << reg_shift);
+    // write register
+    return reg_value;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // private
 // uint8_t slight_FDC1004::read_register_part(
 //     uint8_t reg_name,
@@ -1043,12 +1100,11 @@ uint8_t slight_FDC1004::read_register16bit_part(
 ) {
     // read register
     uint16_t reg_value = read_register16bit(reg_name);
-    // isolate bits
-    reg_value = reg_value & reg_mask;
-    // shift to correct bits.
-    reg_value = reg_value >> reg_shift;
-    // only values <8bit are returned.
-    return (uint8_t)reg_value;
+    return get_register16bit_part(
+        reg_value,
+        reg_mask,
+        reg_shift
+    );
 }
 
 
@@ -1074,13 +1130,15 @@ void slight_FDC1004::write_register16bit_part(
     uint8_t reg_shift,
     uint8_t value
 ) {
-    value = value_limit(reg_mask, reg_shift, value);
     // read register
     uint16_t reg_value = read_register16bit(reg_name);
-    // clear bits
-    reg_value = reg_value & (~reg_mask);
-    // set bits
-    reg_value = reg_value | (value << reg_shift);
+    // set part
+    reg_value = set_register16bit_part(
+        reg_value,
+        reg_mask,
+        reg_shift,
+        value
+    );
     // write register
     write_register16bit(reg_name, reg_value);
 }

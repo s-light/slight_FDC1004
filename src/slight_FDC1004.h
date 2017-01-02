@@ -49,8 +49,8 @@ public:
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // constructor
 
-    slight_FDC1004(uint8_t twi_address);
-    slight_FDC1004(uint8_t twi_address, uint8_t interrupt_pin);
+    slight_FDC1004();
+    // slight_FDC1004(uint8_t twi_address, uint8_t interrupt_pin);
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // attributes
@@ -122,12 +122,12 @@ public:
     void update();
 
     // sensor configurations
-    void configuration_load_defaults();
+    // void configuration_load_defaults();
 
     // poll-update scheduler / IRQ handling
-    void update_interval_set_autofit();
-    void update_interval_set(uint32_t interval);
-    uint32_t update_interval_get();
+    // void update_interval_set_autofit();
+    // void update_interval_set(uint32_t interval);
+    // uint32_t update_interval_get();
 
     void touch_event_set_callback(callback_t);
 
@@ -138,34 +138,6 @@ public:
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // gloal helpers
-
-    // Charge Discharge Time CDT
-    // 0.5us - 32us
-    // bits value   time
-    // 000   0       invalid / global
-    // 001   1       0.5us
-    // 010   2       1us
-    // 011   3       2us
-    // 100   4       4us
-    // 101   5       8us
-    // 110   6       16us
-    // 111   7       32us
-    enum charge_discharge_time_t {
-        cdt_global = B00000000,
-        cdt_05us =   B00000001,
-        cdt_1us =    B00000010,
-        cdt_2us =    B00000011,
-        cdt_4us =    B00000100,
-        cdt_8us =    B00000101,
-        cdt_16us =   B00000110,
-        cdt_32us =   B00000111,
-    };
-    static charge_discharge_time_t charge_discharge_time_convert(uint8_t);
-    static void charge_discharge_time_print(
-        Print &out,
-        charge_discharge_time_t value
-    );
-
 
     enum measurement_id_t {
         measurement_1 = 0,
@@ -274,24 +246,24 @@ public:
     // chA
     measurement_config_chA_t measurement_config_chA_get(uint8_t measurement_id);
     measurement_config_chA_t measurement_config_chA_get(measurement_id_t measurement_id);
-    void measurement_config_set(uint8_t measurement_id, measurement_config_chA_t config);
-    void measurement_config_set(measurement_id_t measurement_id, measurement_config_chA_t config);
+    void measurement_config_chA_set(uint8_t measurement_id, measurement_config_chA_t config);
+    void measurement_config_chA_set(measurement_id_t measurement_id, measurement_config_chA_t config);
 
     // chB
     measurement_config_chB_t measurement_config_chB_get(uint8_t measurement_id);
     measurement_config_chB_t measurement_config_chB_get(measurement_id_t measurement_id);
-    void measurement_config_set(uint8_t measurement_id, measurement_config_chB_t config);
-    void measurement_config_set(measurement_id_t measurement_id, measurement_config_chB_t config);
+    void measurement_config_chB_set(uint8_t measurement_id, measurement_config_chB_t config);
+    void measurement_config_chB_set(measurement_id_t measurement_id, measurement_config_chB_t config);
 
     // CAPDAC
     uint8_t measurement_config_CAPDAC_get(uint8_t measurement_id);
     uint8_t measurement_config_CAPDAC_get(measurement_id_t measurement_id);
     float measurement_config_CAPDAC_get_capacitance(uint8_t measurement_id);
     float measurement_config_CAPDAC_get_capacitance(measurement_id_t measurement_id);
-    void measurement_config_set(uint8_t measurement_id, uint8_t value);
-    void measurement_config_set(measurement_id_t measurement_id, uint8_t value);
-    void measurement_config_set_capacitance(uint8_t measurement_id, float value);
-    void measurement_config_set_capacitance(measurement_id_t measurement_id, float value);
+    void measurement_config_CAPDAC_set(uint8_t measurement_id, uint8_t value);
+    void measurement_config_CAPDAC_set(measurement_id_t measurement_id, uint8_t value);
+    void measurement_config_CAPDAC_set_capacitance(uint8_t measurement_id, float value);
+    void measurement_config_CAPDAC_set_capacitance(measurement_id_t measurement_id, float value);
 
 
     // 8.6.3 FDC Configuration Register
@@ -337,32 +309,64 @@ public:
     //         0 dispabled
     //         1 enabled
 
-    static const uint16_t fdc_config_DONE4_mask =       0b0000000000000001;
-    static const uint8_t  fdc_config_DONE4_shift = 0;
-    static const uint16_t fdc_config_DONE3_mask =       0b0000000000000010;
-    static const uint8_t  fdc_config_DONE3_shift = 1;
-    static const uint16_t fdc_config_DONE2_mask =       0b0000000000000100;
-    static const uint8_t  fdc_config_DONE2_shift = 2;
-    static const uint16_t fdc_config_DONE1_mask =       0b0000000000001000;
-    static const uint8_t  fdc_config_DONE1_shift = 3;
-    static const uint16_t fdc_config_MEAS4_mask =       0b0000000000010000;
-    static const uint8_t  fdc_config_MEAS4_shift = 4;
-    static const uint16_t fdc_config_MEAS3_mask =       0b0000000000100000;
-    static const uint8_t  fdc_config_MEAS3_shift = 5;
-    static const uint16_t fdc_config_MEAS2_mask =       0b0000000001000000;
-    static const uint8_t  fdc_config_MEAS2_shift = 6;
-    static const uint16_t fdc_config_MEAS1_mask =       0b0000000010000000;
-    static const uint8_t  fdc_config_MEAS1_shift = 7;
-    static const uint16_t fdc_config_REPEATE_mask =     0b0000000100000000;
-    static const uint8_t  fdc_config_REPEATE_shift = 8;
-    static const uint16_t fdc_config_RESERVED0_mask =   0b0000001000000000;
-    static const uint8_t  fdc_config_RESERVED0_shift = 9;
-    static const uint16_t fdc_config_RATE_mask =        0b0000110000000000;
-    static const uint8_t  fdc_config_RATE_shift = 10;
-    static const uint16_t fdc_config_RESERVED1_mask =   0b0111000000000000;
-    static const uint8_t  fdc_config_RESERVED1_shift = 12;
-    static const uint16_t fdc_config_RESET_mask =       0b1000000000000000;
-    static const uint8_t  fdc_config_RESET_shift = 15;
+    // static const uint16_t fdc_config_DONE4_mask =       0b0000000000000001;
+    // static const uint8_t  fdc_config_DONE4_shift = 0;
+    // static const uint16_t fdc_config_DONE3_mask =       0b0000000000000010;
+    // static const uint8_t  fdc_config_DONE3_shift = 1;
+    // static const uint16_t fdc_config_DONE2_mask =       0b0000000000000100;
+    // static const uint8_t  fdc_config_DONE2_shift = 2;
+    // static const uint16_t fdc_config_DONE1_mask =       0b0000000000001000;
+    // static const uint8_t  fdc_config_DONE1_shift = 3;
+    // static const uint16_t fdc_config_MEAS4_mask =       0b0000000000010000;
+    // static const uint8_t  fdc_config_MEAS4_shift = 4;
+    // static const uint16_t fdc_config_MEAS3_mask =       0b0000000000100000;
+    // static const uint8_t  fdc_config_MEAS3_shift = 5;
+    // static const uint16_t fdc_config_MEAS2_mask =       0b0000000001000000;
+    // static const uint8_t  fdc_config_MEAS2_shift = 6;
+    // static const uint16_t fdc_config_MEAS1_mask =       0b0000000010000000;
+    // static const uint8_t  fdc_config_MEAS1_shift = 7;
+    // static const uint16_t fdc_config_REPEATE_mask =     0b0000000100000000;
+    // static const uint8_t  fdc_config_REPEATE_shift = 8;
+    // static const uint16_t fdc_config_RESERVED0_mask =   0b0000001000000000;
+    // static const uint8_t  fdc_config_RESERVED0_shift = 9;
+    // static const uint16_t fdc_config_RATE_mask =        0b0000110000000000;
+    // static const uint8_t  fdc_config_RATE_shift = 10;
+    // static const uint16_t fdc_config_RESERVED1_mask =   0b0111000000000000;
+    // static const uint8_t  fdc_config_RESERVED1_shift = 12;
+    // static const uint16_t fdc_config_RESET_mask =       0b1000000000000000;
+    // static const uint8_t  fdc_config_RESET_shift = 15;
+
+    enum fdc_config_mask {
+        mask_DONE_1 = 0b0000000000001000,
+        mask_DONE_2 = 0b0000000000000100,
+        mask_DONE_3 = 0b0000000000000010,
+        mask_DONE_4 = 0b0000000000000001,
+        mask_INIT_4 = 0b0000000000010000,
+        mask_INIT_3 = 0b0000000000100000,
+        mask_INIT_2 = 0b0000000001000000,
+        mask_INIT_1 = 0b0000000010000000,
+        mask_REPEATE = 0b0000000100000000,
+        // REVERSED = 0b0000001000000000,
+        mask_RATE = 0b0000110000000000,
+        // REVERSED = 0b0111000000000000,
+        mask_RESET = 0b1000000000000000,
+    };
+
+    enum fdc_config_shift {
+        shift_DONE_1 = 3,
+        shift_DONE_2 = 2,
+        shift_DONE_3 = 1,
+        shift_DONE_4 = 0,
+        shift_INIT_1 = 7,
+        shift_INIT_2 = 6,
+        shift_INIT_3 = 5,
+        shift_INIT_4 = 4,
+        shift_REPEATE = 8,
+        // REVERSED = 9,
+        shift_RATE = 10,
+        // REVERSED = 12,
+        shift_RESET = 15,
+    };
 
     enum fdc_config_repeate_rate_t {
         repeate_rate_100Ss = 0b001,
@@ -393,6 +397,7 @@ public:
     // measurement repeate rate
     fdc_config_repeate_rate_t measurement_rate_get();
     void measurement_rate_set(fdc_config_repeate_rate_t value);
+    void measurement_rate_set(uint8_t value);
 
     // device reset
     boolean soft_reset_get();
@@ -412,10 +417,12 @@ public:
     void offset_calibration_set(uint8_t measurement_id, uint16_t value);
     void offset_calibration_set(measurement_id_t measurement_id, uint16_t value);
 
-    // float offset_calibration_get_capacitance(uint8_t measurement_id);
-    // float offset_calibration_get_capacitance(measurement_id_t measurement_id);
-    // void offset_calibration_set_capacitance(uint8_t measurement_id, float value);
-    // void offset_calibration_set_capacitance(measurement_id_t measurement_id, float value);
+    void offset_calibration_print_capacitance(Print &out, uint16_t raw);
+
+    float offset_calibration_get_capacitance(uint8_t measurement_id);
+    float offset_calibration_get_capacitance(measurement_id_t measurement_id);
+    void offset_calibration_set_capacitance(uint8_t measurement_id, float value);
+    void offset_calibration_set_capacitance(measurement_id_t measurement_id, float value);
 
 
     // 8.6.5 Gain Calibration Registers
@@ -431,6 +438,8 @@ public:
     uint16_t gain_calibration_get(measurement_id_t measurement_id);
     void gain_calibration_set(uint8_t measurement_id, uint16_t value);
     void gain_calibration_set(measurement_id_t measurement_id, uint16_t value);
+
+    void gain_calibration_print_factor(Print &out, uint16_t raw);
 
     float gain_calibration_get_factor(uint8_t measurement_id);
     float gain_calibration_get_factor(measurement_id_t measurement_id);
@@ -450,13 +459,24 @@ public:
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // advanced read write operations
-    uint8_t read_register_part(
+    // uint8_t read_register_part(
+    //     register_name_t reg_name,
+    //     uint8_t reg_mask,
+    //     uint8_t reg_shift
+    // );
+    uint8_t read_register16bit_part(
         register_name_t reg_name,
         uint16_t reg_mask,
         uint8_t reg_shift
     );
 
-    void write_register_part(
+    // void write_register_part(
+    //     register_name_t reg_name,
+    //     uint8_t reg_mask,
+    //     uint8_t reg_shift,
+    //     uint8_t value
+    // );
+    void write_register16bit_part(
         register_name_t reg_name,
         uint16_t reg_mask,
         uint8_t reg_shift,
@@ -492,8 +512,8 @@ private:
     void switch_mode_restore();
     uint8_t switch_mode_backup_electrode_config;
 
-    // electrode helper
-    uint8_t electrode_bounded(uint8_t electrode);
+    // measurement helper
+    measurement_id_t measurement_id_bounded(uint8_t measurement_id);
 
     // advanced read write operations / helper
     uint8_t ones_in_mask_get(uint8_t mask);
@@ -502,13 +522,24 @@ private:
     uint16_t value_max_get(uint16_t mask, uint16_t shift);
     uint8_t value_limit(uint8_t mask, uint8_t shift, uint8_t);
 
-    uint8_t read_register_part(
+    // uint8_t read_register_part(
+    //     uint8_t reg_name,
+    //     uint8_t reg_mask,
+    //     uint8_t reg_shift
+    // );
+    uint8_t read_register16bit_part(
         uint8_t reg_name,
         uint16_t reg_mask,
         uint8_t reg_shift
     );
 
-    void write_register_part(
+    // void write_register_part(
+    //     uint8_t reg_name,
+    //     uint8_t reg_mask,
+    //     uint8_t reg_shift,
+    //     uint8_t value
+    // );
+    void write_register16bit_part(
         uint8_t reg_name,
         uint16_t reg_mask,
         uint8_t reg_shift,
@@ -516,9 +547,9 @@ private:
     );
 
     // basic read write operations
-    void write_register(uint8_t reg_name, uint8_t value);
+    // void write_register(uint8_t reg_name, uint8_t value);
     void write_register16bit(uint8_t reg_name, uint16_t value);
-    uint8_t read_register(uint8_t reg_name);
+    // uint8_t read_register(uint8_t reg_name);
     uint16_t read_register16bit(uint8_t reg_name);
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

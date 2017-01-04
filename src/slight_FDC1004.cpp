@@ -68,7 +68,7 @@ bool slight_FDC1004::begin() {
 
         // reset all registers
         // takes ~300ms
-        soft_reset();
+        soft_reset_write();
 
         // configuration_load_defaults();
     }
@@ -383,6 +383,55 @@ void slight_FDC1004::measurement_config_chA_set(
     );
 }
 
+void slight_FDC1004::measurement_config_chA_print(
+    Print &out,
+    measurement_config_chA_t config
+) {
+    switch (config) {
+        case config_chA_CIN1: {
+            // out.print(F("CIN1"));
+            out.print("CIN1");
+        } break;
+        case config_chA_CIN2: {
+            // out.print(F("CIN2"));
+            out.print("CIN2");
+        } break;
+        case config_chA_CIN3: {
+            // out.print(F("CIN3"));
+            out.print("CIN3");
+        } break;
+        case config_chA_CIN4: {
+            // out.print(F("CIN4"));
+            out.print("CIN4");
+        } break;
+        default: {
+            // out.print(F("??"));
+            out.print("??");
+        }
+    }
+}
+
+void slight_FDC1004::measurement_config_chA_print(
+    Print &out,
+    measurement_id_t measurement_id
+) {
+    measurement_config_chA_print(
+        out,
+        measurement_config_chA_get(measurement_id)
+    );
+}
+
+void slight_FDC1004::measurement_config_chA_print(
+    Print &out,
+    uint8_t measurement_id
+) {
+    measurement_config_chA_print(
+        out,
+        measurement_config_chA_get(
+            measurement_id_bounded(measurement_id)
+        )
+    );
+}
 
 // chB
 slight_FDC1004::measurement_config_chB_t slight_FDC1004::measurement_config_chB_get(
@@ -425,6 +474,92 @@ void slight_FDC1004::measurement_config_chB_set(
     );
 }
 
+void slight_FDC1004::measurement_config_chB_print(
+    Print &out,
+    measurement_config_chB_t config,
+    boolean align_right
+) {
+    switch (config) {
+        case config_chB_CIN1: {
+            if (align_right) {
+                // out.print(F("    "));
+                out.print("    ");
+            }
+            // out.print(F("CIN1"));
+            out.print("CIN1");
+        } break;
+        case config_chB_CIN2: {
+            if (align_right) {
+                // out.print(F("    "));
+                out.print("    ");
+            }
+            // out.print(F("CIN2"));
+            out.print("CIN2");
+        } break;
+        case config_chB_CIN3: {
+            if (align_right) {
+                // out.print(F("    "));
+                out.print("    ");
+            }
+            // out.print(F("CIN3"));
+            out.print("CIN3");
+        } break;
+        case config_chB_CIN4: {
+            if (align_right) {
+                // out.print(F("    "));
+                out.print("    ");
+            }
+            // out.print(F("CIN4"));
+            out.print("CIN4");
+        } break;
+        case config_chB_CAPDAC: {
+            if (align_right) {
+                // out.print(F("  "));
+                out.print("  ");
+            }
+            // out.print(F("CAPDAC"));
+            out.print("CAPDAC");
+        } break;
+        case config_chB_DISABLED: {
+            // out.print(F("DISABLED"));
+            out.print("DISABLED");
+        } break;
+        default: {
+            if (align_right) {
+                // out.print(F("      "));
+                out.print("      ");
+            }
+            // out.print(F("??"));
+            out.print("??");
+        }
+    }
+}
+
+void slight_FDC1004::measurement_config_chB_print(
+    Print &out,
+    measurement_id_t measurement_id,
+    boolean align_right
+) {
+    measurement_config_chB_print(
+        out,
+        measurement_config_chB_get(measurement_id),
+        align_right
+    );
+}
+
+void slight_FDC1004::measurement_config_chB_print(
+    Print &out,
+    uint8_t measurement_id,
+    boolean align_right
+) {
+    measurement_config_chB_print(
+        out,
+        measurement_config_chB_get(
+            measurement_id_bounded(measurement_id)
+        ),
+        align_right
+    );
+}
 
 // CAPDAC
 uint8_t slight_FDC1004::measurement_config_CAPDAC_get(
@@ -447,7 +582,7 @@ uint8_t slight_FDC1004::measurement_config_CAPDAC_get(
 
 float slight_FDC1004::measurement_config_CAPDAC_get_capacitance(uint8_t measurement_id) {
     return measurement_config_CAPDAC_get_capacitance(
-        measurement_config_CAPDAC_get_capacitance(measurement_id)
+        measurement_id_bounded(measurement_id)
     );
 }
 
@@ -623,7 +758,7 @@ void slight_FDC1004::measurement_init_set(measurement_id_t measurement_id, boole
     shift += measurement_id;
     uint16_t mask = mask_INIT_1;
     mask += measurement_id;
-    set_register16bit_part(
+    _reg_FDC_CONFIG = set_register16bit_part(
         _reg_FDC_CONFIG,
         mask,
         shift,
@@ -655,7 +790,7 @@ boolean slight_FDC1004::measurement_repeate_get() {
 }
 
 void slight_FDC1004::measurement_repeate_set(boolean value) {
-    set_register16bit_part(
+    _reg_FDC_CONFIG = set_register16bit_part(
         _reg_FDC_CONFIG,
         mask_REPEATE,
         shift_REPEATE,
@@ -674,7 +809,7 @@ slight_FDC1004::fdc_config_repeate_rate_t slight_FDC1004::measurement_rate_get()
 }
 
 void slight_FDC1004::measurement_rate_set(fdc_config_repeate_rate_t value) {
-    set_register16bit_part(
+    _reg_FDC_CONFIG = set_register16bit_part(
         _reg_FDC_CONFIG,
         mask_RATE,
         shift_RATE,
@@ -714,7 +849,7 @@ boolean slight_FDC1004::soft_reset_read() {
     );
 }
 
-void slight_FDC1004::soft_reset() {
+void slight_FDC1004::soft_reset_write() {
     write_register16bit_part(
         REG_FDC_CONFIG,
         mask_RESET,
@@ -968,14 +1103,30 @@ uint8_t slight_FDC1004::ones_in_mask_get(uint8_t mask) {
     return ones_in_mask;
 }
 
+uint8_t slight_FDC1004::ones_in_mask_get(uint16_t mask) {
+    uint8_t ones_in_mask = __builtin_popcount(mask);
+    return ones_in_mask;
+}
+
 uint8_t slight_FDC1004::value_max_get(uint8_t mask) {
     uint8_t ones_in_mask = ones_in_mask_get(mask);
     uint8_t value_max = 0b11111111 >> (8 - ones_in_mask);
     return value_max;
 }
 
+uint16_t slight_FDC1004::value_max_get(uint16_t mask) {
+    uint8_t ones_in_mask = ones_in_mask_get(mask);
+    uint16_t value_max = 0b1111111111111111 >> (16 - ones_in_mask);
+    return value_max;
+}
+
 uint8_t slight_FDC1004::value_max_get(uint8_t mask, uint8_t shift) {
     uint8_t value_max = mask >> shift;
+    return value_max;
+}
+
+uint16_t slight_FDC1004::value_max_get(uint16_t mask, uint8_t shift) {
+    uint16_t value_max = mask >> shift;
     return value_max;
 }
 
@@ -990,6 +1141,30 @@ uint8_t slight_FDC1004::value_limit(
     uint8_t value
 ) {
     uint8_t value_max = value_max_get(mask, shift);
+    if (value > value_max) {
+        value = value_max;
+    }
+    return value;
+}
+
+uint8_t slight_FDC1004::value_limit(
+    uint16_t mask,
+    uint8_t shift,
+    uint8_t value
+) {
+    uint8_t value_max = value_max_get(mask, shift);
+    if (value > value_max) {
+        value = value_max;
+    }
+    return value;
+}
+
+uint16_t slight_FDC1004::value_limit(
+    uint16_t mask,
+    uint8_t shift,
+    uint16_t value
+) {
+    uint16_t value_max = value_max_get(mask, shift);
     if (value > value_max) {
         value = value_max;
     }
@@ -1152,6 +1327,7 @@ void slight_FDC1004::write_register16bit_part(
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // basic read write operations
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 // uint8_t slight_FDC1004::read_register(uint8_t reg_name) {
 //     uint8_t result_value = 0;
 //     if (ready) {
@@ -1186,11 +1362,13 @@ uint16_t slight_FDC1004::read_register16bit(uint8_t reg_name) {
         if (twi_state == TWI_STATE_success) {
             // read data
             Wire.requestFrom(twi_address, (uint8_t)2);
-            result_value = Wire.read();
-            uint16_t highbyte = ((uint16_t)Wire.read()) << 8;
-            result_value |= highbyte;
+            uint8_t MSB = Wire.read();
+            uint8_t LSB = Wire.read();
+            // uint8_t highbyte = ((uint16_t)Wire.read()) << 8;
+            result_value |= ((uint16_t)MSB << 8);
+            result_value |= LSB;
         } else {
-            // print_transmission_state(Serial, twi_state);
+            // twi_state_print(Serial, twi_state);
         }
     }
     return result_value;
@@ -1233,13 +1411,38 @@ void slight_FDC1004::write_register16bit(
         // set register
         Wire.beginTransmission(twi_address);
         Wire.write(reg_name);
-        Wire.write(value);
+
+        Serial.println("write_register16bit");
+
+        // uint8_t written = Wire.write(value);
+        //
+        // Serial.print("  send: ");
+        // Serial.print(written);
+        // Serial.println();
+
+        Serial.print("  value: ");
+        Serial.print(value);
+        Serial.println();
+        uint8_t MSB = (value >> 8);
+        uint8_t LSB = (value & 0x00FF);
+        Serial.print("  MSB: ");
+        Serial.print(MSB);
+        Serial.println();
+        Serial.print("  LSB: ");
+        Serial.print(LSB);
+        Serial.println();
+        Wire.write(MSB);
+        Wire.write(LSB);
+
         twi_state = (twi_state_t)Wire.endTransmission();
         if (twi_state == TWI_STATE_success) {
             // all fine.
         } else {
-            // print_transmission_state(Serial, twi_state);
+            // twi_state_print(Serial, twi_state);
         }
+
+        twi_state_print(Serial, twi_state);
+        Serial.println();
     }
 }
 
@@ -1260,21 +1463,27 @@ void slight_FDC1004::twi_state_print(Print &out, twi_state_t state) {
     switch (state) {
         case TWI_STATE_success: {
             // out.print(F("success"));
+            out.print("success");
         } break;
         case TWI_STATE_data_to_long: {
             // out.print(F("data too long to fit in transmit buffer"));
+            out.print("data too long to fit in transmit buffer");
         } break;
         case TWI_STATE_rec_NACK_on_address: {
             // out.print(F("received NACK on transmit of address"));
+            out.print("received NACK on transmit of address");
         } break;
         case TWI_STATE_rec_NACK_on_data: {
             // out.print(F("received NACK on transmit of data"));
+            out.print("received NACK on transmit of data");
         } break;
         case TWI_STATE_other_error: {
             // out.print(F("other error"));
+            out.print("other error");
         } break;
         default: {
             // out.print(F("??"));
+            out.print("??");
         }
     }
 }

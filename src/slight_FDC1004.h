@@ -140,10 +140,10 @@ public:
     // gloal helpers
 
     enum measurement_id_t {
-        measurement_1 = 0,
-        measurement_2 = 1,
-        measurement_3 = 2,
-        measurement_4 = 3,
+        MESA_1 = 0,
+        MESA_2 = 1,
+        MESA_3 = 2,
+        MESA_4 = 3,
     };
     static measurement_id_t measurement_id_convert(uint8_t);
     static void measurement_id_print(
@@ -186,7 +186,7 @@ public:
     float capacitance_get(uint8_t measurement_id);
     float capacitance_get(measurement_id_t measurement_id);
 
-    float convert_measurement_to_capacitance(uint32_t measurement_value);
+    static float convert_measurement_to_capacitance(uint32_t measurement_value);
 
     // 8.6.2 Measurement Configuration Registers
     // read and write
@@ -241,7 +241,7 @@ public:
         config_chB_CIN3 = 0b010,
         config_chB_CIN4 = 0b011,
         config_chB_CAPDAC = 0b100,
-        config_chB_DISPABLED = 0b111,
+        config_chB_DISABLED = 0b111,
     };
 
     // read & write from & to chip
@@ -263,11 +263,34 @@ public:
     void measurement_config_chA_set(uint8_t measurement_id, measurement_config_chA_t config);
     void measurement_config_chA_set(measurement_id_t measurement_id, measurement_config_chA_t config);
 
+    static void measurement_config_chA_print(Print &out, measurement_config_chA_t config);
+    void measurement_config_chA_print(Print &out, measurement_id_t measurement_id);
+    void measurement_config_chA_print(Print &out, uint8_t measurement_id);
+
     // chB
     measurement_config_chB_t measurement_config_chB_get(uint8_t measurement_id);
     measurement_config_chB_t measurement_config_chB_get(measurement_id_t measurement_id);
     void measurement_config_chB_set(uint8_t measurement_id, measurement_config_chB_t config);
     void measurement_config_chB_set(measurement_id_t measurement_id, measurement_config_chB_t config);
+
+    static void measurement_config_chB_print(
+        Print &out,
+        measurement_config_chB_t config,
+        boolean align_right=false
+    );
+
+    void measurement_config_chB_print(
+        Print &out,
+        measurement_id_t measurement_id,
+        boolean align_right=false
+    );
+
+    void measurement_config_chB_print(
+        Print &out,
+        uint8_t measurement_id,
+        boolean align_right=false
+    );
+
 
     // CAPDAC
     uint8_t measurement_config_CAPDAC_get(uint8_t measurement_id);
@@ -419,7 +442,7 @@ public:
 
     // device reset
     boolean soft_reset_read();
-    void soft_reset();
+    void soft_reset_write();
 
 
     // 8.6.4 Offset Calibration Registers
@@ -488,7 +511,7 @@ public:
         uint8_t reg_shift
     );
 
-    uint8_t get_register16bit_part(
+    static uint8_t get_register16bit_part(
         uint16_t reg_value,
         uint16_t reg_mask,
         uint8_t reg_shift
@@ -507,7 +530,7 @@ public:
         uint8_t value
     );
 
-    uint16_t set_register16bit_part(
+    static uint16_t set_register16bit_part(
         uint16_t reg_value,
         uint16_t reg_mask,
         uint8_t reg_shift,
@@ -547,11 +570,16 @@ private:
     measurement_id_t measurement_id_bounded(uint8_t measurement_id);
 
     // advanced read write operations / helper
-    uint8_t ones_in_mask_get(uint8_t mask);
-    uint8_t value_max_get(uint8_t mask);
-    uint8_t value_max_get(uint8_t mask, uint8_t shift);
-    uint16_t value_max_get(uint16_t mask, uint16_t shift);
-    uint8_t value_limit(uint8_t mask, uint8_t shift, uint8_t);
+    static uint8_t  ones_in_mask_get(uint8_t mask);
+    static uint8_t  ones_in_mask_get(uint16_t mask);
+    static uint8_t  value_max_get(uint8_t mask);
+    static uint16_t value_max_get(uint16_t mask);
+    static uint8_t  value_max_get(uint8_t mask, uint8_t shift);
+    static uint16_t value_max_get(uint16_t mask, uint16_t shift);
+    static uint16_t value_max_get(uint16_t mask, uint8_t shift);
+    static uint8_t  value_limit(uint8_t mask, uint8_t shift, uint8_t value);
+    static uint8_t  value_limit(uint16_t mask, uint8_t shift, uint8_t value);
+    static uint16_t value_limit(uint16_t mask, uint8_t shift, uint16_t value);
 
     // uint8_t read_register_part(
     //     uint8_t reg_name,

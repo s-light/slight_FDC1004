@@ -34,6 +34,8 @@
 // include I2C library
 #include <Wire.h>
 
+// #include <slight_DebugMenu.h>
+
 // include own headerfile
 #include "slight_FDC1004.h"
 
@@ -67,7 +69,7 @@ bool slight_FDC1004::begin() {
         ready = true;
 
         // reset all registers
-        // takes ~300ms
+        // takes ~?ms
         soft_reset_write();
 
         // configuration_load_defaults();
@@ -79,14 +81,49 @@ void slight_FDC1004::update() {
     sensor_status_update();
 }
 
-// void slight_FDC1004::configuration_load_defaults() {
-//     // setup 'good' starting configuration
-//     // calculate and set auto config values for 3.3V
-//     auto_config_calculate_values_and_set(33);
-//     // setup auto config to enabled with good defaults
-//     auto_config_load_recommend_config();
-//     // auto_config_load_recommend_config(&Serial);
-// }
+void slight_FDC1004::configuration_load_defaults() {
+    // setup 'good' starting configuration
+
+    // measurement configurations
+    // MESA_1
+    // measurement_config_chA_set(
+    //     MESA_1,
+    //     config_chA_CIN1
+    // );
+    // measurement_config_chB_set(
+    //     MESA_1,
+    //     config_chB_DISABLED
+    // );
+    // measurement_config_CAPDAC_set(
+    //     MESA_1,
+    //     0
+    // );
+
+    // write config to device
+    // measurement_config_write(MESA_1);
+
+    // fdc config
+    // enable measurement 1
+    // measurement_init_set(MESA_1, true);
+    // // set speed to 100S/s
+    // measurement_rate_set(repeate_rate_100Ss);
+    // // enable auto repeate
+    // measurement_repeate_set(false);
+    //
+    // // write config to device
+    // fdc_config_write();
+
+    // offset
+    // offset_calibration_set(MESA_1, 0);
+    // offset_calibration_set_capacitance(MESA_1, 0.0);
+
+    // gain
+    // gain_calibration_set(MESA_1, 0);
+    // gain_calibration_set_factor(MESA_1, 0.0);
+
+    // set pooling to 10ms
+    update_interval_set(10);
+}
 
 
 // void slight_FDC1004::update_interval_set_autofit() {
@@ -94,14 +131,14 @@ void slight_FDC1004::update() {
 //     // 90ms is fine for default configuration??
 //     update_interval = 90;
 // }
-//
-// void slight_FDC1004::update_interval_set(uint32_t interval) {
-//     update_interval = interval;
-// }
-//
-// uint32_t slight_FDC1004::update_interval_get() {
-//     return update_interval;
-// }
+
+void slight_FDC1004::update_interval_set(uint32_t interval) {
+    update_interval = interval;
+}
+
+uint32_t slight_FDC1004::update_interval_get() {
+    return update_interval;
+}
 
 
 void slight_FDC1004::sensor_event_set_callback(
@@ -114,41 +151,60 @@ void slight_FDC1004::sensor_event_set_callback(
 void slight_FDC1004::sensor_status_update() {
     // check if sensor is present
     if (ready) {
-        // poll sensor every 90ms
+        // poll sensor every 10ms
         // at default configuration
         // this is the cycle time till all sensors are read.
-        // uint32_t duration = millis() - timestamp_lastread;
-        // if (duration > update_interval) {
-        //     timestamp_lastread =  millis();
-        //
-        //     // get current state
-        //     uint16_t touch_status_raw = touch_status_read();
-        //     // check for overcurrentflag
-        //     if (touch_status_raw & touch_status_overcurrent_flag_mask) {
-        //         touch_status_overcurrent_flag = true;
-        //     } else  {
-        //         touch_status_overcurrent_flag = false;
-        //     }
-        //     // filter overcurrentflag out
-        //     touch_status = touch_status_raw & touch_status_electrode_mask;
-        //
-        //     // filter for changes
-        //     if (touch_status != touch_status_old) {
-        //         touch_status_old = touch_status;
-        //
-        //         // change in touch detected
-        //         sensor_event_callback();
-        //         // Serial.print(F("touched: "));
-        //         // for (size_t i=0; i<8; i++) {
-        //         //     if (touch_status & (1 << i)) {
-        //         //         Serial.print("1");
-        //         //     } else {
-        //         //         Serial.print("0");
-        //         //     }
-        //         // }
-        //         // Serial.println();
-        //     }  // filter for changes
-        // }  // update_interval
+        uint32_t duration = millis() - timestamp_lastread;
+        if (duration > update_interval) {
+            timestamp_lastread =  millis();
+
+            // check for measurements
+            fdc_config_read();
+            boolean flag_dirty = false;
+
+            for (size_t i = 0; i < 4; i++) {
+                // check if measurement is completed
+                if (measurement_done_get(i)) {
+                    // backup last value
+                    _reg_MEASn_VALUE_old[i] = _reg_MEASn_VALUE[i];
+                    // read new value
+                    // this sets _reg_MEASn_VALUE to the new value
+                    measurement_read(i);
+                    if (_reg_MEASn_VALUE_old[i] != _reg_MEASn_VALUE[i]) {
+                        flag_dirty = true;
+                    }
+                }
+            }
+
+            // get current state
+            // uint16_t touch_status_raw = touch_status_read();
+            // // check for overcurrentflag
+            // if (touch_status_raw & touch_status_overcurrent_flag_mask) {
+            //     touch_status_overcurrent_flag = true;
+            // } else  {
+            //     touch_status_overcurrent_flag = false;
+            // }
+            // // filter overcurrentflag out
+            // touch_status = touch_status_raw & touch_status_electrode_mask;
+
+            // filter for changes
+            // if (touch_status != touch_status_old) {
+            //     touch_status_old = touch_status;
+            if (flag_dirty) {
+                // change in measurement detected
+                sensor_event_callback();
+
+                // Serial.print(F("touched: "));
+                // for (size_t i=0; i<8; i++) {
+                //     if (touch_status & (1 << i)) {
+                //         Serial.print("1");
+                //     } else {
+                //         Serial.print("0");
+                //     }
+                // }
+                // Serial.println();
+            }  // ifend filter for changes
+        }  // update_interval
     }  // if ready
 }
 
@@ -197,10 +253,14 @@ uint32_t slight_FDC1004::measurement_read(uint8_t measurement_id) {
 }
 
 uint32_t slight_FDC1004::measurement_read(measurement_id_t measurement_id) {
+    uint8_t reg_MSB = REG_MEAS1_MSB;
+    uint8_t reg_LSB = REG_MEAS1_LSB;
+    reg_MSB += (measurement_id * 2);
+    reg_LSB += (measurement_id * 2);
     uint32_t value = 0;
     // read 32bit value in two 16bit steps and combine
-    value = read_register16bit(REG_MEAS1_LSB);
-    value |= read_register16bit(REG_MEAS1_MSB) << 16;
+    value |= ((uint32_t)read_register16bit(reg_MSB) << 16);
+    value |= read_register16bit(reg_LSB);
     _reg_MEASn_VALUE[measurement_id] = value;
     return value;
 }
@@ -213,7 +273,8 @@ float slight_FDC1004::capacitance_read(uint8_t measurement_id) {
 
 float slight_FDC1004::capacitance_read(measurement_id_t measurement_id) {
     return convert_measurement_to_capacitance(
-        measurement_read(measurement_id)
+        measurement_read(measurement_id),
+        offset_calibration_get(measurement_id)
     );
 }
 
@@ -236,12 +297,16 @@ float slight_FDC1004::capacitance_get(uint8_t measurement_id) {
 
 float slight_FDC1004::capacitance_get(measurement_id_t measurement_id) {
     return convert_measurement_to_capacitance(
-        measurement_get(measurement_id)
+        measurement_get(measurement_id),
+        offset_calibration_get(measurement_id)
     );
 }
 
 
-float slight_FDC1004::convert_measurement_to_capacitance(uint32_t measurement_value) {
+float slight_FDC1004::convert_measurement_to_capacitance(
+    uint32_t measurement_value,
+    uint16_t offset
+) {
     float capacitance = 0.0;
     // calculate capacitance from raw value.
     //  Capacitance (pf) =
@@ -715,14 +780,19 @@ boolean slight_FDC1004::measurement_done_get(uint8_t measurement_id) {
 }
 
 boolean slight_FDC1004::measurement_done_get(measurement_id_t measurement_id) {
-    uint8_t shift = shift_DONE_1;
-    shift += measurement_id;
-    uint16_t mask = mask_DONE_1;
-    mask += measurement_id;
+    // uint8_t shift = shift_DONE_1;
+    // shift += measurement_id;
+    // uint16_t mask = mask_DONE_1;
+    // mask += measurement_id;
+    // return (boolean)get_register16bit_part(
+    //     _reg_FDC_CONFIG,
+    //     mask,
+    //     shift
+    // );
     return (boolean)get_register16bit_part(
         _reg_FDC_CONFIG,
-        mask,
-        shift
+        fdc_config_DONE_mask[measurement_id],
+        fdc_config_DONE_shift[measurement_id]
     );
 }
 
@@ -735,14 +805,14 @@ boolean slight_FDC1004::measurement_init_get(uint8_t measurement_id) {
 }
 
 boolean slight_FDC1004::measurement_init_get(measurement_id_t measurement_id) {
-    uint8_t shift = shift_INIT_1;
-    shift += measurement_id;
-    uint16_t mask = mask_INIT_1;
-    mask += measurement_id;
+    // uint8_t shift = shift_INIT_1;
+    // shift += measurement_id;
+    // uint16_t mask = mask_INIT_1;
+    // mask += measurement_id;
     return (boolean)get_register16bit_part(
         _reg_FDC_CONFIG,
-        mask,
-        shift
+        fdc_config_INIT_mask[measurement_id],
+        fdc_config_INIT_shift[measurement_id]
     );
 }
 
@@ -754,14 +824,31 @@ void slight_FDC1004::measurement_init_set(uint8_t measurement_id, boolean value)
 }
 
 void slight_FDC1004::measurement_init_set(measurement_id_t measurement_id, boolean value) {
-    uint8_t shift = shift_INIT_1;
-    shift += measurement_id;
-    uint16_t mask = mask_INIT_1;
-    mask += measurement_id;
+    // uint8_t shift = shift_INIT_1;
+    // uint16_t mask = mask_INIT_1;
+    //
+    // Print &out = Serial;
+    // out.print("shift: ");
+    // slight_DebugMenu::print_Binary_8(out, shift);
+    // out.println();
+    // out.print("mask : ");
+    // slight_DebugMenu::print_Binary_16(out, mask);
+    // out.println();
+    //
+    // shift += measurement_id;
+    // mask += measurement_id;
+    //
+    // out.print("shift: ");
+    // slight_DebugMenu::print_Binary_8(out, shift);
+    // out.println();
+    // out.print("mask : ");
+    // slight_DebugMenu::print_Binary_16(out, mask);
+    // out.println();
+
     _reg_FDC_CONFIG = set_register16bit_part(
         _reg_FDC_CONFIG,
-        mask,
-        shift,
+        fdc_config_INIT_mask[measurement_id],
+        fdc_config_INIT_shift[measurement_id],
         value
     );
 }
@@ -839,6 +926,41 @@ void slight_FDC1004::measurement_rate_set(uint8_t value) {
     measurement_rate_set(rate);
 }
 
+void slight_FDC1004::measurement_rate_print(
+    Print &out,
+    fdc_config_repeate_rate_t rate
+) {
+    switch (rate) {
+        case repeate_rate_RESERVED: {
+            // out.print(F("RESERVED"));
+            out.print("RESERVED");
+        } break;
+        case repeate_rate_100Ss: {
+            // out.print(F("100S/s"));
+            out.print("100S/s");
+        } break;
+        case repeate_rate_200Ss: {
+            // out.print(F("200S/s"));
+            out.print("200S/s");
+        } break;
+        case repeate_rate_400Ss: {
+            // out.print(F("400S/s"));
+            out.print("400S/s");
+        } break;
+        default: {
+            // out.print(F("??"));
+            out.print("??");
+        }
+    }
+}
+
+void slight_FDC1004::measurement_rate_print(Print &out) {
+    measurement_rate_print(
+        out,
+        measurement_rate_get()
+    );
+}
+
 
 // device reset
 boolean slight_FDC1004::soft_reset_read() {
@@ -894,6 +1016,11 @@ void slight_FDC1004::offset_calibration_set(measurement_id_t measurement_id, uin
 }
 
 
+// float map_float(float x, float in_min, float in_max, float out_min, float out_max) {
+//     // https://www.arduino.cc/en/Reference/Map
+//     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+// }
+
 void slight_FDC1004::offset_calibration_print_capacitance(Print &out, uint16_t raw) {
     uint8_t integer_part = raw >> 10;
     uint16_t decimal_part = raw & 0b0000011111111111;
@@ -902,17 +1029,12 @@ void slight_FDC1004::offset_calibration_print_capacitance(Print &out, uint16_t r
     out.print(decimal_part);
 }
 
+
 float slight_FDC1004::offset_calibration_get_capacitance(uint8_t measurement_id) {
     return offset_calibration_get_capacitance(
         measurement_id_bounded(measurement_id)
     );
 }
-
-
-// float map_float(float x, float in_min, float in_max, float out_min, float out_max) {
-//     // https://www.arduino.cc/en/Reference/Map
-//     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-// }
 
 float slight_FDC1004::offset_calibration_get_capacitance(measurement_id_t measurement_id) {
     uint16_t raw = offset_calibration_get(measurement_id);
@@ -930,7 +1052,10 @@ float slight_FDC1004::offset_calibration_get_capacitance(measurement_id_t measur
     return capacitance;
 }
 
-void slight_FDC1004::offset_calibration_set_capacitance(uint8_t measurement_id, float value) {
+void slight_FDC1004::offset_calibration_set_capacitance(
+    uint8_t measurement_id,
+    float value
+) {
     offset_calibration_set_capacitance(
         measurement_id_bounded(measurement_id),
         value
@@ -1039,7 +1164,7 @@ uint16_t slight_FDC1004::manufacturer_id_get() {
     return reg;
 }
 
-// 8.6.6 Device ID Register
+// 8.6.7 Device ID Register
 // read only
 // fixed at 0x1004
 uint16_t slight_FDC1004::device_id_get() {
@@ -1412,25 +1537,29 @@ void slight_FDC1004::write_register16bit(
         Wire.beginTransmission(twi_address);
         Wire.write(reg_name);
 
-        Serial.println("write_register16bit");
+        // Serial.println("%%%%% write_register16bit %%%%%");
 
-        // uint8_t written = Wire.write(value);
+        // Serial.print("  reg: ");
+        // Serial.print(reg_name, HEX);
+        // Serial.println();
         //
-        // Serial.print("  send: ");
-        // Serial.print(written);
+        // Serial.print("  value: ");
+        // slight_DebugMenu::print_Binary_16(
+        //     Serial,
+        //     value
+        // );
+        // Serial.print(" = ");
+        // Serial.print(value, HEX);
         // Serial.println();
 
-        Serial.print("  value: ");
-        Serial.print(value);
-        Serial.println();
         uint8_t MSB = (value >> 8);
         uint8_t LSB = (value & 0x00FF);
-        Serial.print("  MSB: ");
-        Serial.print(MSB);
-        Serial.println();
-        Serial.print("  LSB: ");
-        Serial.print(LSB);
-        Serial.println();
+        // Serial.print("  MSB: ");
+        // Serial.print(MSB);
+        // Serial.println();
+        // Serial.print("  LSB: ");
+        // Serial.print(LSB);
+        // Serial.println();
         Wire.write(MSB);
         Wire.write(LSB);
 
@@ -1441,8 +1570,8 @@ void slight_FDC1004::write_register16bit(
             // twi_state_print(Serial, twi_state);
         }
 
-        twi_state_print(Serial, twi_state);
-        Serial.println();
+        // twi_state_print(Serial, twi_state);
+        // Serial.println();
     }
 }
 

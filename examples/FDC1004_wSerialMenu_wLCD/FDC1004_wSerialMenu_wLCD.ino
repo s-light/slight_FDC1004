@@ -239,10 +239,18 @@ void handleMenu_Main(slight_DebugMenu *pInstance) {
             out.println(F("\t 'Y': toggle DebugOut livesign LED"));
             out.println(F("\t 'x': tests"));
             out.println();
-            out.println(F("\t 'd': dump sensor config 'd'"));
-            out.println(F("\t 'i': init measurements 'i'"));
-            out.println(F("\t 'r': read measurements 'r'"));
-            out.println(F("\t 't': test read & write 't'"));
+            out.println(F("\t 'd': dump sensor config"));
+            out.println(F("\t 'i': init measurements"));
+            out.println(F("\t 'r': read measurements"));
+            out.println(F("\t 't': test read & write"));
+            out.println(F("\t 'c': set config 'c'"));
+            out.println(F("\t 'R': reset sensor"));
+            out.println();
+            out.println(F("\t 'D': raw dump sensor data"));
+            // out.println(F("\t 'r': raw read measurements"));
+            out.println(F("\t 'C': raw read config"));
+            // out.println(F("\t 'c': raw write config"));
+            // out.println();
             // out.println(F("\t 's': sensitivity set [1, 2, .., 64, 128] 's128'"));
             // out.println(F("\t 'S': sensitivity get "));
             // out.println(F("\t 'a': auto config - load recommend configuration"));
@@ -290,6 +298,74 @@ void handleMenu_Main(slight_DebugMenu *pInstance) {
             // out.print((byte)(wTest>>8));
             // out.println();
             //
+            // out.println();
+
+            // out.println(F("    bit test"));
+            // out.print(F("      8 (1 << 3) "));
+            // slight_DebugMenu::print_Binary_8(
+            //     out,
+            //     (0b1 << 3)
+            // );
+            // out.println();
+            // out.print(F("      8 (1 << 7) "));
+            // slight_DebugMenu::print_Binary_8(
+            //     out,
+            //     (0b1 << 7)
+            // );
+            // out.println();
+            // out.print(F("     16 (1 << 3) "));
+            // slight_DebugMenu::print_Binary_16(
+            //     out,
+            //     (0b1 << 3)
+            // );
+            // out.println();
+            // out.print(F("     16 (1 << 15) "));
+            // slight_DebugMenu::print_Binary_16(
+            //     out,
+            //     (0b1 << 15)
+            // );
+            // out.println();
+            //
+            // uint32_t u32 = 0;
+            // out.print(F("     32 ((uint32_t)1 << 3) "));
+            // u32 = ((uint32_t)1 << 3);
+            // out.print(F(" : "));
+            // out.print(u32, BIN);
+            // out.print(F(" : "));
+            // slight_DebugMenu::print_Binary_32(
+            //     out,
+            //     u32
+            // );
+            // out.println();
+            // out.print(F("     32 (1 << 17) "));
+            // u32 = ((uint32_t)1 << 17);
+            // out.print(F(" : "));
+            // out.print(u32, BIN);
+            // out.print(F(" : "));
+            // slight_DebugMenu::print_Binary_32(
+            //     out,
+            //     u32
+            // );
+            // out.println();
+            // out.print(F("     32 (1 << 31) "));
+            // u32 = ((uint32_t)1 << 31);
+            // out.print(F(" : "));
+            // out.print(u32, BIN);
+            // out.print(F(" : "));
+            // slight_DebugMenu::print_Binary_32(
+            //     out,
+            //     u32
+            // );
+            // out.println();
+            // out.print(F("     32 (4,294,967,295) "));
+            // u32 = (4294967295);
+            // out.print(F(" : "));
+            // out.print(u32, BIN);
+            // out.print(F(" : "));
+            // slight_DebugMenu::print_Binary_32(
+            //     out,
+            //     u32
+            // );
             // out.println();
 
             out.println(F("test set_register16bit_part: "));
@@ -351,6 +427,31 @@ void handleMenu_Main(slight_DebugMenu *pInstance) {
         case 't': {
             mySensor_readwritetest(out);
         } break;
+        case 'c': {
+            mySensor_config(out);
+        } break;
+        case 'R': {
+            out.println(F("\t soft_reset_write()."));
+            mySensor.soft_reset_write();
+            out.print(F("\t soft_reset_read():"));
+            boolean state = mySensor.soft_reset_read();
+            out.print(state);
+            out.println();
+        } break;
+        //---------------------------------------------------------------------
+        case 'D': {
+            mySensor_raw_dump(out);
+        } break;
+        // case 'r': {
+        //     mySensor_raw_read_measurements(out);
+        // } break;
+        case 'C': {
+            mySensor_raw_read_config(out);
+        } break;
+        // case 'c': {
+        //     mySensor_raw_write_config(out);
+        // } break;
+        //---------------------------------------------------------------------
         // case 's': {
         //     out.print(F("\t sensitivity set "));
         //     // convert part of string to int
@@ -479,14 +580,15 @@ void mySensor_init(Print &out) {
         out.print("found!");
         out.println();
 
-        // mySensor.sensor_event_set_callback(sensor_event);
+        mySensor.update_interval_set(500);
+        mySensor.sensor_event_set_callback(sensor_event);
 
     }
     out.println(F("\t finished."));
 }
 
 void sensor_event(slight_FDC1004 *instance) {
-    Serial.print(F("sensor_event: "));
+    // Serial.print(F("sensor_event: "));
     // for (size_t i=0; i<12; i++) {
     //     if (instance->touch_status_get() & (1 << i)) {
     //         Serial.print("1");
@@ -494,7 +596,59 @@ void sensor_event(slight_FDC1004 *instance) {
     //         Serial.print("0");
     //     }
     // }
-    Serial.println();
+    // Serial.println();
+    Print &out = Serial;
+    uint32_t temp = 0;
+
+    out.print(F("1: "));
+    temp = instance->measurement_read(slight_FDC1004::MESA_1);
+    slight_DebugMenu::print_Binary_32(
+        out,
+        temp
+    );
+    out.print(F("; "));
+    slight_DebugMenu::print_uint32_align_right(
+        out,
+        temp
+    );
+    out.print(F("; "));
+    out.print(
+        temp
+    );
+    // out.print(F("; "));
+    // out.print(
+    //     instance->capacitance_get(slight_FDC1004::MESA_1)
+    // );
+    out.print(F("; "));
+    out.print(
+        slight_FDC1004::convert_measurement_to_capacitance(temp, 0)
+    );
+    out.println();
+
+    // out.print(F("2: "));
+    // temp = instance->measurement_read(slight_FDC1004::MESA_2);
+    // slight_DebugMenu::print_Binary_32(
+    //     out,
+    //     temp
+    // );
+    // out.print(F("; "));
+    // slight_DebugMenu::print_uint32_align_right(
+    //     out,
+    //     temp
+    // );
+    // out.print(F("; "));
+    // out.print(
+    //     temp
+    // );
+    // // out.print(F("; "));
+    // // out.print(
+    // //     instance->capacitance_get(slight_FDC1004::MESA_1)
+    // // );
+    // out.print(F("; "));
+    // out.print(
+    //     slight_FDC1004::convert_measurement_to_capacitance(temp, 0)
+    // );
+    // out.println();
 }
 
 
@@ -524,6 +678,8 @@ void mySensor_dump(Print &out) {
     out.println();
     out.print(F("      rate: "));
     out.print(mySensor.measurement_rate_get());
+    out.print(F(" = "));
+    mySensor.measurement_rate_print(out);
     out.println();
     out.print(F("      reset: "));
     out.print(mySensor.soft_reset_read());
@@ -581,19 +737,25 @@ void mySensor_dump(Print &out) {
 
 void mySensor_measurement_read(Print &out) {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     out.println(F("    read measurement 1..4"));
     for (size_t i = 0; i < 4; i++) {
         uint32_t temp = mySensor.measurement_read(i);
         out.print(F("    "));
         out.print(i);
         out.print(F(": "));
+        slight_DebugMenu::print_Binary_32(
+            out,
+            temp
+        );
+        out.print(F("; "));
         slight_DebugMenu::print_uint32_align_right(
             out,
             temp
         );
         out.print(F("; "));
         out.print(
-            slight_FDC1004::convert_measurement_to_capacitance(temp)
+            slight_FDC1004::convert_measurement_to_capacitance(temp, 0)
         );
         out.println();
     }
@@ -602,10 +764,35 @@ void mySensor_measurement_read(Print &out) {
 void mySensor_measurement_init(Print &out) {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     out.println(F("\t init measurements: "));
-    out.print(F("\t   MESA_1: "));
-    mySensor.measurement_init(slight_FDC1004::MESA_1);
-    Serial.println();
+    out.println(F("\t   MESA_1: "));
+
+    // out.print(F("\t   o "));
+    // slight_DebugMenu::print_Binary_16(
+    //     out,
+    //     mySensor.fdc_config_get()
+    // );
+    // Serial.println();
+
+    mySensor.measurement_rate_set(slight_FDC1004::repeate_rate_100Ss);
+    mySensor.measurement_repeate_set(false);
+    mySensor.measurement_init(slight_FDC1004::MESA_2);
+
+    // out.print(F("\t   s "));
+    // slight_DebugMenu::print_Binary_16(
+    //     out,
+    //     mySensor.fdc_config_get()
+    // );
+    // Serial.println();
+
     mySensor.fdc_config_write();
+
+    // out.print(F("\t   r "));
+    // slight_DebugMenu::print_Binary_16(
+    //     out,
+    //     mySensor.fdc_config_read()
+    // );
+    // Serial.println();
+
     // out.println(F("    init measurement 1..4"));
     // for (size_t i = 0; i < 4; i++) {
     //     uint32_t temp = mySensor.measurement_read(i);
@@ -622,6 +809,55 @@ void mySensor_measurement_init(Print &out) {
     //     );
     //     out.println();
     // }
+}
+
+void mySensor_config(Print &out) {
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    out.println(F("\t set config: "));
+
+    // measurement configurations
+    // MESA_1
+    out.println(F("\t   MESA_1: (chA = CIN1; chB = DISABLED;) "));
+    mySensor.measurement_config_chA_set(
+        slight_FDC1004::MESA_1,
+        slight_FDC1004::config_chA_CIN1
+    );
+    mySensor.measurement_config_chB_set(
+        slight_FDC1004::MESA_1,
+        slight_FDC1004::config_chB_DISABLED
+    );
+    // out.println(F("\t   MESA_2: (chA = CIN2; chB = DISABLED;) "));
+    // mySensor.measurement_config_chA_set(
+    //     slight_FDC1004::MESA_1,
+    //     slight_FDC1004::config_chA_CIN2
+    // );
+    // mySensor.measurement_config_chB_set(
+    //     slight_FDC1004::MESA_1,
+    //     slight_FDC1004::config_chB_DISABLED
+    // );
+    // mySensor.measurement_config_CAPDAC_set(
+    //     slight_FDC1004::MESA_1,
+    //     0
+    // );
+
+    // write config to device
+    out.println(F("\t   write config to device."));
+    mySensor.measurement_config_write(slight_FDC1004::MESA_1);
+    // mySensor.measurement_config_write(slight_FDC1004::MESA_2);
+
+    // fdc config
+    // enable measurement 1
+    out.println(F("\t   fdc config: (MESA_1 init=enabled; rate=100S/s; repeate=true;) "));
+    mySensor.measurement_init_set(slight_FDC1004::MESA_1, true);
+    // mySensor.measurement_init_set(slight_FDC1004::MESA_2, true);
+    // set speed to 100S/s
+    mySensor.measurement_rate_set(slight_FDC1004::repeate_rate_100Ss);
+    // enable auto repeate
+    mySensor.measurement_repeate_set(true);
+
+    // write config to device
+    mySensor.fdc_config_write();
+    out.println(F("\t   write config to device."));
 }
 
 void mySensor_readwritetest(Print &out) {
@@ -656,6 +892,279 @@ void mySensor_readwritetest(Print &out) {
     );
 
 }
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// FDC1004 DEBUG
+// direct I2C commands for communication
+
+void mySensor_raw_dump(Print &out) {
+    out.println();
+    out.println(F("~~ dump all sensor data ~~"));
+
+    uint16_t reg_value = 0;
+
+    out.println(F("8.6.1.1 Capacitive Measurement Registers"));
+    out.print(F(" REG_MEAS1_MSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS1_MSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS1_LSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS1_LSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS2_MSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS2_MSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS2_LSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS2_LSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS3_MSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS3_MSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS3_LSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS3_LSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS4_MSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS4_MSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS4_LSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS4_LSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+
+
+    out.println(F("8.6.2 Measurement Configuration Registers"));
+    out.print(F(" REG_MEAS1_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS1_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+    out.print(F(" REG_MEAS2_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS2_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+    out.print(F(" REG_MEAS3_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS3_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+    out.print(F(" REG_MEAS4_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS4_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+
+    out.println(F("8.6.3 FDC Configuration Register"));
+    out.print(F(" REG_FDC_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_FDC_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+
+    out.println(F("8.6.4 Offset Calibration Registers"));
+    out.print(F(" REG_CIN1_OFFSET_CALIBRATION "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_CIN1_OFFSET_CALIBRATION);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+    out.print(F(" REG_CIN2_OFFSET_CALIBRATION "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_CIN2_OFFSET_CALIBRATION);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+    out.print(F(" REG_CIN3_OFFSET_CALIBRATION "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_CIN3_OFFSET_CALIBRATION);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+    out.print(F(" REG_CIN4_OFFSET_CALIBRATION "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_CIN4_OFFSET_CALIBRATION);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+
+    out.println(F("8.6.5 Gain Calibration Registers"));
+    out.print(F(" REG_CIN1_GAIN_CALIBRATION "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_CIN1_GAIN_CALIBRATION);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+    out.print(F(" REG_CIN2_GAIN_CALIBRATION "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_CIN2_GAIN_CALIBRATION);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+    out.print(F(" REG_CIN3_GAIN_CALIBRATION "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_CIN3_GAIN_CALIBRATION);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+    out.print(F(" REG_CIN4_GAIN_CALIBRATION "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_CIN4_GAIN_CALIBRATION);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+
+    out.println(F("8.6.6 Manufacturer ID Register"));
+    out.print(F(" REG_MANUFACTURER_ID "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MANUFACTURER_ID);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+
+    out.println(F("8.6.7 Device ID Register"));
+    out.print(F(" REG_DEVICE_ID "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_DEVICE_ID);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+}
+
+void mySensor_raw_read_config(Print &out) {
+    out.println();
+    out.println(F("~~ read config data ~~"));
+
+    uint16_t reg_value = 0;
+
+    out.println(F("8.6.2 Measurement Configuration Registers"));
+    out.print(F(" REG_MEAS1_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS1_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+    out.print(F(" REG_MEAS2_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS2_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+    out.print(F(" REG_MEAS3_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS3_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+    out.print(F(" REG_MEAS4_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS4_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+
+    out.println(F("8.6.3 FDC Configuration Register"));
+    out.print(F(" REG_FDC_CONFIG "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_FDC_CONFIG);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+}
+
+void mySensor_raw_read_measurements(Print &out) {
+    out.println();
+    out.println(F("~~ read measurements ~~"));
+
+    uint16_t reg_value = 0;
+
+    out.println(F("8.6.1.1 Capacitive Measurement Registers"));
+    out.print(F(" REG_MEAS1_MSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS1_MSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS1_LSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS1_LSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS2_MSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS2_MSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS2_LSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS2_LSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS3_MSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS3_MSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS3_LSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS3_LSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS4_MSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS4_MSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+    out.print(F(" REG_MEAS4_LSB "));
+    reg_value = mySensor.read_register16bit(slight_FDC1004::REG_MEAS4_LSB);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.println();
+
+}
+
+void mySensor_raw_write_config(Print &out) {
+    out.println();
+    out.println(F("~~ configure sensor for simple test ~~"));
+
+    uint16_t reg_value = 0;
+
+    out.println(F("8.6.2 Measurement Configuration Registers"));
+    out.print(F(" REG_MEAS1_CONFIG "));
+    reg_value = 0b0001110000000000;
+    mySensor.write_register16bit(slight_FDC1004::REG_MEAS1_CONFIG, reg_value);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+
+    out.println(F("8.6.3 FDC Configuration Register"));
+    out.print(F(" REG_FDC_CONFIG "));
+    reg_value = 0b0000010010000000;
+    mySensor.write_register16bit(slight_FDC1004::REG_FDC_CONFIG, reg_value);
+    slight_DebugMenu::print_Binary_16(out, reg_value);
+    out.print(F(" : "));
+    out.print(reg_value, HEX);
+    out.println();
+
+}
+
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // setup

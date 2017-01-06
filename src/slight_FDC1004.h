@@ -106,7 +106,7 @@ public:
         // 8.6.6 Manufacturer ID Register
         REG_MANUFACTURER_ID = 0xFE,
 
-        // 8.6.6 Device ID Register
+        // 8.6.7 Device ID Register
         REG_DEVICE_ID = 0xFF,
     };
 
@@ -122,18 +122,14 @@ public:
     void update();
 
     // sensor configurations
-    // void configuration_load_defaults();
+    void configuration_load_defaults();
 
-    // poll-update scheduler / IRQ handling
+    // poll-update scheduler
     // void update_interval_set_autofit();
-    // void update_interval_set(uint32_t interval);
-    // uint32_t update_interval_get();
+    void update_interval_set(uint32_t interval);
+    uint32_t update_interval_get();
 
     void sensor_event_set_callback(callback_t);
-
-
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // register helper functions
 
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -186,7 +182,10 @@ public:
     float capacitance_get(uint8_t measurement_id);
     float capacitance_get(measurement_id_t measurement_id);
 
-    static float convert_measurement_to_capacitance(uint32_t measurement_value);
+    static float convert_measurement_to_capacitance(
+        uint32_t measurement_value,
+        uint16_t offset
+    );
 
     // 8.6.2 Measurement Configuration Registers
     // read and write
@@ -319,31 +318,31 @@ public:
     //         b11 400S/s
     //     [9] RESERVED (read only)
     //     [8] REPEAT Repeat Measurements
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
     //     [7] MEAS_1 initiate measurement
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
     //     [6] MEAS_2 initiate measurement
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
     //     [5] MEAS_3 initiate measurement
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
     //     [4] MEAS_4 initiate measurement
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
     //     [3] DONE_1 measurement done
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
     //     [2] DONE_2 measurement done
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
     //     [1] DONE_3 measurement done
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
     //     [0] DONE_4 measurement done
-    //         0 dispabled
+    //         0 disabled
     //         1 enabled
 
     // static const uint16_t fdc_config_DONE4_mask =       0b0000000000000001;
@@ -373,20 +372,49 @@ public:
     // static const uint16_t fdc_config_RESET_mask =       0b1000000000000000;
     // static const uint8_t  fdc_config_RESET_shift = 15;
 
+    const uint16_t fdc_config_DONE_mask[4] = {
+        0b0000000000001000,
+        0b0000000000000100,
+        0b0000000000000010,
+        0b0000000000000001
+    };
+
+    const uint16_t fdc_config_INIT_mask[4] = {
+        0b0000000010000000,
+        0b0000000001000000,
+        0b0000000000100000,
+        0b0000000000010000
+    };
+
     enum fdc_config_mask {
         mask_DONE_1 = 0b0000000000001000,
         mask_DONE_2 = 0b0000000000000100,
         mask_DONE_3 = 0b0000000000000010,
         mask_DONE_4 = 0b0000000000000001,
-        mask_INIT_4 = 0b0000000000010000,
-        mask_INIT_3 = 0b0000000000100000,
-        mask_INIT_2 = 0b0000000001000000,
         mask_INIT_1 = 0b0000000010000000,
+        mask_INIT_2 = 0b0000000001000000,
+        mask_INIT_3 = 0b0000000000100000,
+        mask_INIT_4 = 0b0000000000010000,
         mask_REPEATE = 0b0000000100000000,
         // REVERSED = 0b0000001000000000,
         mask_RATE = 0b0000110000000000,
         // REVERSED = 0b0111000000000000,
         mask_RESET = 0b1000000000000000,
+    };
+
+    // static constexpr uint8_t fdc_config_DONE_shift[4] = {
+    const uint8_t fdc_config_DONE_shift[4] = {
+        3,
+        2,
+        1,
+        0
+    };
+
+    const uint8_t fdc_config_INIT_shift[4] = {
+        7,
+        6,
+        5,
+        4
     };
 
     enum fdc_config_shift {
@@ -406,9 +434,10 @@ public:
     };
 
     enum fdc_config_repeate_rate_t {
-        repeate_rate_100Ss = 0b001,
-        repeate_rate_200Ss = 0b010,
-        repeate_rate_400Ss = 0b011,
+        repeate_rate_RESERVED = 0b00,
+        repeate_rate_100Ss = 0b01,
+        repeate_rate_200Ss = 0b10,
+        repeate_rate_400Ss = 0b11,
     };
 
     // read & write to chip
@@ -439,6 +468,8 @@ public:
     fdc_config_repeate_rate_t measurement_rate_get();
     void measurement_rate_set(fdc_config_repeate_rate_t value);
     void measurement_rate_set(uint8_t value);
+    static void measurement_rate_print(Print &out, fdc_config_repeate_rate_t rate);
+    void measurement_rate_print(Print &out);
 
     // device reset
     boolean soft_reset_read();
@@ -492,11 +523,29 @@ public:
     // fixed at 0x5449
     uint16_t manufacturer_id_get();
 
-    // 8.6.6 Device ID Register
+    // 8.6.7 Device ID Register
     // read only
     // fixed at 0x1004
     uint16_t device_id_get();
 
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // sensor configurations
+
+    // union measurement_config_t {
+    //     uint16_t raw;
+    //     struct {
+    //         measurement_config_chA_t chA;
+    //         measurement_config_chB_t chB;
+    //         uint16_t CAPDAC;
+    //         short lo;
+    //     } parts;
+    // };
+    //
+    // struct fdc1004_config_t {
+    //     measurement_config_t meas_1;
+    //     bool p1_value;
+    // };
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // advanced read write operations
@@ -638,6 +687,7 @@ private:
         0x1C00
     };
 
+    uint32_t _reg_MEASn_VALUE_old[4] = {0, 0, 0, 0};
     uint32_t _reg_MEASn_VALUE[4] = {0, 0, 0, 0};
 
 

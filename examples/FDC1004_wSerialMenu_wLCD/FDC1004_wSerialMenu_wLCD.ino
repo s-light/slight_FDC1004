@@ -212,7 +212,22 @@ void lcd_init(Print &out) {
     out.println(F("\t finished."));
 }
 
+void lcd_update() {
+    lcd.setCursor(0, 0);
+    // lcd.print(F("FDC1004 "));
+    uint32_t temp = mySensor.measurement_get(slight_FDC1004::MESA_1);
+    slight_DebugMenu::print_uint32_align_right(
+        lcd,
+        temp
+    );
 
+    lcd.setCursor(0, 1);
+    // lcd.print(temp);
+    // lcd.print(F(" "));
+    lcd.print(
+        mySensor.capacitance_get(slight_FDC1004::MESA_1)
+    );
+}
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Menu System
@@ -368,37 +383,37 @@ void handleMenu_Main(slight_DebugMenu *pInstance) {
             // );
             // out.println();
 
-            out.println(F("test set_register16bit_part: "));
-
-
-            uint16_t temp = 0b0001110000001111;
-
-            out.println(F("original value: "));
-            slight_DebugMenu::print_Binary_16(out, temp);
-            // out.print(F("; "));
-            // out.print(temp, HEX);
-            // out.print(F("; "));
-            // out.print(temp, BIN);
-            // out.print(F("; "));
-            // out.print(temp);
-            out.println();
-
-            // static uint16_t set_register16bit_part(
-            //     uint16_t reg_value,
-            //     uint16_t reg_mask,
-            //     uint8_t reg_shift,
-            //     uint8_t value
+            // out.println(F("test set_register16bit_part: "));
+            //
+            //
+            // uint16_t temp = 0b0001110000001111;
+            //
+            // out.println(F("original value: "));
+            // slight_DebugMenu::print_Binary_16(out, temp);
+            // // out.print(F("; "));
+            // // out.print(temp, HEX);
+            // // out.print(F("; "));
+            // // out.print(temp, BIN);
+            // // out.print(F("; "));
+            // // out.print(temp);
+            // out.println();
+            //
+            // // static uint16_t set_register16bit_part(
+            // //     uint16_t reg_value,
+            // //     uint16_t reg_mask,
+            // //     uint8_t reg_shift,
+            // //     uint8_t value
+            // // );
+            // out.println(F("set part"));
+            // temp = slight_FDC1004::set_register16bit_part(
+            //     temp,
+            //     0b0001110000000000,
+            //     10,
+            //     0b001
             // );
-            out.println(F("set part"));
-            temp = slight_FDC1004::set_register16bit_part(
-                temp,
-                0b0001110000000000,
-                10,
-                0b001
-            );
-            out.println(F("result:"));
-            slight_DebugMenu::print_Binary_16(out, temp);
-            out.println();
+            // out.println(F("result:"));
+            // slight_DebugMenu::print_Binary_16(out, temp);
+            // out.println();
 
 
             // temp = 0b0000000000111000;
@@ -411,6 +426,7 @@ void handleMenu_Main(slight_DebugMenu *pInstance) {
             // out.print(F("; "));
             // out.print(temp);
             // out.println();
+
 
             out.println(F("__________"));
         } break;
@@ -597,33 +613,43 @@ void sensor_event(slight_FDC1004 *instance) {
     //     }
     // }
     // Serial.println();
-    Print &out = Serial;
-    uint32_t temp = 0;
 
-    out.print(F("1: "));
-    temp = instance->measurement_read(slight_FDC1004::MESA_1);
-    slight_DebugMenu::print_Binary_32(
-        out,
-        temp
-    );
-    out.print(F("; "));
-    slight_DebugMenu::print_uint32_align_right(
-        out,
-        temp
-    );
-    out.print(F("; "));
-    out.print(
-        temp
-    );
-    // out.print(F("; "));
-    // out.print(
-    //     instance->capacitance_get(slight_FDC1004::MESA_1)
-    // );
-    out.print(F("; "));
-    out.print(
-        slight_FDC1004::convert_measurement_to_capacitance(temp, 0)
-    );
+    Print &out = Serial;
+
+    lcd_update();
     out.println();
+
+    // uint32_t temp = 0;
+    //
+    // out.print(F("1: "));
+    // temp = instance->measurement_read(slight_FDC1004::MESA_1);
+    // slight_DebugMenu::print_Binary_32(
+    //     out,
+    //     temp
+    // );
+    // out.print(F("; "));
+    // slight_DebugMenu::print_uint32_align_right(
+    //     out,
+    //     temp
+    // );
+    // out.print(F("; "));
+    //     // out.print(
+    //     //     temp
+    //     // );
+    // // out.print(F("; "));
+    // // out.print(
+    // //     instance->capacitance_get(slight_FDC1004::MESA_1)
+    // // );
+    //
+    //
+    // lcd_update();
+    //
+    //
+    // out.print(F("; "));
+    // // out.print(
+    // //     slight_FDC1004::convert_measurement_to_capacitance(temp, 0)
+    // // );
+    // out.println();
 
     // out.print(F("2: "));
     // temp = instance->measurement_read(slight_FDC1004::MESA_2);

@@ -34,7 +34,7 @@
 // include I2C library
 #include <Wire.h>
 
-// #include <slight_DebugMenu.h>
+#include <slight_DebugMenu.h>
 
 // include own headerfile
 #include "slight_FDC1004.h"
@@ -261,6 +261,33 @@ uint32_t slight_FDC1004::measurement_read(measurement_id_t measurement_id) {
     // read 32bit value in two 16bit steps and combine
     value |= ((uint32_t)read_register16bit(reg_MSB) << 16);
     value |= read_register16bit(reg_LSB);
+
+    Print &out = Serial;
+
+    // uint16_t MSB = read_register16bit(reg_MSB);
+    // uint16_t LSB = read_register16bit(reg_LSB);
+    //
+    // out.print(F("MSB: "));
+    // slight_DebugMenu::print_Binary_16(
+    //     out,
+    //     MSB
+    // );
+    // out.print(F(" LSB: "));
+    // slight_DebugMenu::print_Binary_16(
+    //     out,
+    //     LSB
+    // );
+    //
+    // value |= ((uint32_t)MSB << 16);
+    // value |= LSB;
+
+    out.print(F(" combine: "));
+    slight_DebugMenu::print_Binary_32(
+        out,
+        value
+    );
+    out.print(F(";    "));
+
     _reg_MEASn_VALUE[measurement_id] = value;
     return value;
 }
@@ -320,6 +347,45 @@ float slight_FDC1004::convert_measurement_to_capacitance(
     temp |= (measurement_value & mask);
     boolean twocomp = (measurement_value & mask_twocomp);
     temp |= twocomp << 31;
+
+    Print &out = Serial;
+
+    slight_DebugMenu::print_Binary_32(
+        out,
+        measurement_value
+    );
+    out.print(F("; "));
+    slight_DebugMenu::print_uint32_align_right(
+        out,
+        measurement_value
+    );
+    out.print(F(" -> "));
+
+    slight_DebugMenu::print_Binary_32(
+        out,
+        temp
+    );
+    out.print(F("; "));
+    slight_DebugMenu::print_uint32_align_right(
+        out,
+        temp
+    );
+    out.print(F("; "));
+    out.print(
+        (int32_t)temp
+    );
+    // out.print(F("; "));
+    // out.print(
+    //     instance->capacitance_get(slight_FDC1004::MESA_1)
+    // );
+
+
+    // out.print("");
+    // slight_DebugMenu::print_uint32_align_right(
+    //     out,
+    //     temp
+    // );
+
     return capacitance;
 }
 

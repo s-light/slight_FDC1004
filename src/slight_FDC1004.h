@@ -172,18 +172,18 @@ public:
     //          / 2^19
     //      ) + C_offset
 
-    uint32_t measurement_read(uint8_t measurement_id);
-    uint32_t measurement_read(measurement_id_t measurement_id);
+    int32_t measurement_read(uint8_t measurement_id);
+    int32_t measurement_read(measurement_id_t measurement_id);
     float capacitance_read(uint8_t measurement_id);
     float capacitance_read(measurement_id_t measurement_id);
 
-    uint32_t measurement_get(uint8_t measurement_id);
-    uint32_t measurement_get(measurement_id_t measurement_id);
+    int32_t measurement_get(uint8_t measurement_id);
+    int32_t measurement_get(measurement_id_t measurement_id);
     float capacitance_get(uint8_t measurement_id);
     float capacitance_get(measurement_id_t measurement_id);
 
     static float convert_measurement_to_capacitance(
-        uint32_t measurement_value,
+        int32_t measurement_value,
         uint16_t offset
     );
 
@@ -687,8 +687,8 @@ private:
         0x1C00
     };
 
-    uint32_t _reg_MEASn_VALUE_old[4] = {0, 0, 0, 0};
-    uint32_t _reg_MEASn_VALUE[4] = {0, 0, 0, 0};
+    int32_t _reg_MEASn_VALUE_old[4] = {0, 0, 0, 0};
+    int32_t _reg_MEASn_VALUE[4] = {0, 0, 0, 0};
 
 
 };  // class slight_FDC1004

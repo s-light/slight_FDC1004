@@ -215,18 +215,32 @@ void lcd_init(Print &out) {
 void lcd_update() {
     lcd.setCursor(0, 0);
     // lcd.print(F("FDC1004 "));
-    uint32_t temp = mySensor.measurement_get(slight_FDC1004::MESA_1);
     slight_DebugMenu::print_uint32_align_right(
         lcd,
-        temp
+        mySensor.measurement_get(slight_FDC1004::MESA_1)
     );
+    // lcd.print(
+    //     mySensor.capacitance_get(slight_FDC1004::MESA_1)
+    // );
+
+    // lcd.setCursor(0, 1);
+    // slight_DebugMenu::print_uint32_align_right(
+    //     lcd,
+    //     mySensor.measurement_get(slight_FDC1004::MESA_2)
+    // );
+    // lcd.print(F("="));
+    // lcd.print(
+    //     mySensor.capacitance_get(slight_FDC1004::MESA_2)
+    // );
 
     lcd.setCursor(0, 1);
-    // lcd.print(temp);
-    // lcd.print(F(" "));
+    lcd.print(F("       "));
+    lcd.setCursor(0, 1);
     lcd.print(
         mySensor.capacitance_get(slight_FDC1004::MESA_1)
     );
+
+    // lcd.print(temp);
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -428,6 +442,7 @@ void handleMenu_Main(slight_DebugMenu *pInstance) {
             // out.println();
 
 
+
             out.println(F("__________"));
         } break;
         //---------------------------------------------------------------------
@@ -445,6 +460,7 @@ void handleMenu_Main(slight_DebugMenu *pInstance) {
         } break;
         case 'c': {
             mySensor_config(out);
+            lcd.clear();
         } break;
         case 'R': {
             out.println(F("\t soft_reset_write()."));
@@ -850,8 +866,10 @@ void mySensor_config(Print &out) {
     );
     mySensor.measurement_config_chB_set(
         slight_FDC1004::MESA_1,
+        // slight_FDC1004::config_chB_CIN2
         slight_FDC1004::config_chB_DISABLED
     );
+
     // out.println(F("\t   MESA_2: (chA = CIN2; chB = DISABLED;) "));
     // mySensor.measurement_config_chA_set(
     //     slight_FDC1004::MESA_1,

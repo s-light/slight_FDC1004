@@ -246,23 +246,28 @@ void slight_FDC1004::sensor_event_callback() {
 //          / 2^19
 //      ) + C_offset
 
-uint32_t slight_FDC1004::measurement_read(uint8_t measurement_id) {
+int32_t slight_FDC1004::measurement_read(uint8_t measurement_id) {
     return measurement_read(
         measurement_id_bounded(measurement_id)
     );
 }
 
-uint32_t slight_FDC1004::measurement_read(measurement_id_t measurement_id) {
+int32_t slight_FDC1004::measurement_read(measurement_id_t measurement_id) {
     uint8_t reg_MSB = REG_MEAS1_MSB;
     uint8_t reg_LSB = REG_MEAS1_LSB;
     reg_MSB += (measurement_id * 2);
     reg_LSB += (measurement_id * 2);
-    uint32_t value = 0;
+    int32_t value = 0;
     // read 32bit value in two 16bit steps and combine
-    value |= ((uint32_t)read_register16bit(reg_MSB) << 16);
+    value |= ((int32_t)read_register16bit(reg_MSB) << 16);
     value |= read_register16bit(reg_LSB);
 
-    Print &out = Serial;
+    // max result:
+    // 0b01111111111111111111111100000000
+    // min result:
+    // 0b11111111111111111111111100000000
+
+    // Print &out = Serial;
 
     // uint16_t MSB = read_register16bit(reg_MSB);
     // uint16_t LSB = read_register16bit(reg_LSB);
@@ -278,15 +283,15 @@ uint32_t slight_FDC1004::measurement_read(measurement_id_t measurement_id) {
     //     LSB
     // );
     //
-    // value |= ((uint32_t)MSB << 16);
+    // value |= ((int32_t)MSB << 16);
     // value |= LSB;
 
-    out.print(F(" combine: "));
-    slight_DebugMenu::print_Binary_32(
-        out,
-        value
-    );
-    out.print(F(";    "));
+    // out.print(F(" combine: "));
+    // slight_DebugMenu::print_Binary_32(
+    //     out,
+    //     value
+    // );
+    // out.print(F(";    "));
 
     _reg_MEASn_VALUE[measurement_id] = value;
     return value;
@@ -306,13 +311,13 @@ float slight_FDC1004::capacitance_read(measurement_id_t measurement_id) {
 }
 
 
-uint32_t slight_FDC1004::measurement_get(uint8_t measurement_id) {
+int32_t slight_FDC1004::measurement_get(uint8_t measurement_id) {
     return measurement_get(
         measurement_id_bounded(measurement_id)
     );
 }
 
-uint32_t slight_FDC1004::measurement_get(measurement_id_t measurement_id) {
+int32_t slight_FDC1004::measurement_get(measurement_id_t measurement_id) {
     return _reg_MEASn_VALUE[measurement_id];
 }
 
@@ -331,7 +336,7 @@ float slight_FDC1004::capacitance_get(measurement_id_t measurement_id) {
 
 
 float slight_FDC1004::convert_measurement_to_capacitance(
-    uint32_t measurement_value,
+    int32_t measurement_value,
     uint16_t offset
 ) {
     float capacitance = 0.0;
@@ -341,12 +346,63 @@ float slight_FDC1004::convert_measurement_to_capacitance(
     //          (Twos complement (measurement [23:0]))
     //          / 2^19
     //      ) + C_offset
-    uint32_t mask = 0b00000000011111111111111111111111;
-    uint32_t mask_twocomp = (1 << 23);
-    uint32_t temp = 0;
-    temp |= (measurement_value & mask);
-    boolean twocomp = (measurement_value & mask_twocomp);
-    temp |= twocomp << 31;
+    // measurement_value max:
+    // 0b01111111111111111111111100000000
+    // measurement_value min:
+    // 0b11111111111111111111111100000000
+    const int32_t in_min = 0b10000000000000000000000100000000;
+    const int32_t in_max = 0b01111111111111111111111100000000;
+    const float out_min = -16.0;
+    const float out_max = 16.0;
+
+
+    int16_t temp = (measurement_value >> 16);
+    temp = map(
+        temp,
+        -32768,
+        32767,
+        -16000,
+        16000
+    );
+    capacitance = (float)(temp / 1000.0);
+
+    // uint16_t temp = map(
+    //     measurement_value,
+    //     in_min,
+    //     in_max,
+    //     0,
+    //     32000
+    // );
+    // capacitance = (float)(temp / 1000.0)/2.0;
+
+    // capacitance = (
+    //     (
+    //         (measurement_value - in_min) * (out_max - out_min)
+    //     ) / (in_max - in_min) + out_min
+    // );
+
+    // capacitance = (
+    //     (
+    //         (float)(
+    //             (measurement_value - in_min) * 32.0
+    //         ) / (float)(
+    //             in_max - in_min
+    //         )
+    //     ) - 16.0
+    // );
+
+    // capacitance = (
+    //     (
+    //         (float)(
+    //             (measurement_value - in_min) * 32.0
+    //         ) / (float)(
+    //             in_max - in_min
+    //         )
+    //     )
+    // );
+
+
+
 
     Print &out = Serial;
 
@@ -355,24 +411,29 @@ float slight_FDC1004::convert_measurement_to_capacitance(
         measurement_value
     );
     out.print(F("; "));
-    slight_DebugMenu::print_uint32_align_right(
+    slight_DebugMenu::print_int32_align_right(
         out,
         measurement_value
     );
     out.print(F(" -> "));
+    slight_DebugMenu::print_int16_align_right(
+        out,
+        temp
+    );
+    out.print(F(" -> "));
 
-    slight_DebugMenu::print_Binary_32(
-        out,
-        temp
-    );
-    out.print(F("; "));
-    slight_DebugMenu::print_uint32_align_right(
-        out,
-        temp
-    );
-    out.print(F("; "));
+    // slight_DebugMenu::print_Binary_32(
+    //     out,
+    //     temp
+    // );
+    // out.print(F("; "));
+    // slight_DebugMenu::print_int32_align_right(
+    //     out,
+    //     temp
+    // );
+    // out.print(F("; "));
     out.print(
-        (int32_t)temp
+        capacitance
     );
     // out.print(F("; "));
     // out.print(

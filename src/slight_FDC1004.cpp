@@ -34,7 +34,7 @@
 // include I2C library
 #include <Wire.h>
 
-#include <slight_DebugMenu.h>
+// #include <slight_DebugMenu.h>
 
 // include own headerfile
 #include "slight_FDC1004.h"
@@ -334,6 +334,37 @@ float slight_FDC1004::capacitance_get(measurement_id_t measurement_id) {
     );
 }
 
+int16_t slight_FDC1004::capacitance_integer_get(uint8_t measurement_id) {
+    return capacitance_integer_get(
+        measurement_id_bounded(measurement_id)
+    );
+}
+
+int16_t slight_FDC1004::capacitance_integer_get(measurement_id_t measurement_id) {
+    return convert_measurement_to_capacitance_integer(
+        measurement_get(measurement_id)
+    );
+}
+
+
+int16_t slight_FDC1004::convert_measurement_to_capacitance_integer(
+    int32_t measurement_value
+) {
+    int16_t capacitance = 0;
+    // HACKY!!!
+    // only use MSB
+    int16_t MSB = (measurement_value >> 16);
+    // map to 'nice range'
+    capacitance = map(
+        MSB,
+        -32768,
+        32767,
+        -16000,
+        16000
+    );
+
+    return capacitance;
+}
 
 float slight_FDC1004::convert_measurement_to_capacitance(
     int32_t measurement_value,
@@ -350,21 +381,20 @@ float slight_FDC1004::convert_measurement_to_capacitance(
     // 0b01111111111111111111111100000000
     // measurement_value min:
     // 0b11111111111111111111111100000000
-    const int32_t in_min = 0b10000000000000000000000100000000;
-    const int32_t in_max = 0b01111111111111111111111100000000;
-    const float out_min = -16.0;
-    const float out_max = 16.0;
+    // const int32_t in_min = 0b10000000000000000000000100000000;
+    // const int32_t in_max = 0b01111111111111111111111100000000;
+    // const float out_min = -16.0;
+    // const float out_max = 16.0;
 
-
-    int16_t temp = (measurement_value >> 16);
-    temp = map(
-        temp,
-        -32768,
-        32767,
-        -16000,
-        16000
+    // HACKY!!!
+    // only uses MSB
+    int32_t temp = convert_measurement_to_capacitance_integer(
+        measurement_value
     );
+    // add offset - we use a int32_t so there is enough headroom..
+    // offset can be -16.0 .. +16.0
     capacitance = (float)(temp / 1000.0);
+    capacitance += offset;
 
     // uint16_t temp = map(
     //     measurement_value,
@@ -404,23 +434,23 @@ float slight_FDC1004::convert_measurement_to_capacitance(
 
 
 
-    Print &out = Serial;
-
-    slight_DebugMenu::print_Binary_32(
-        out,
-        measurement_value
-    );
-    out.print(F("; "));
-    slight_DebugMenu::print_int32_align_right(
-        out,
-        measurement_value
-    );
-    out.print(F(" -> "));
-    slight_DebugMenu::print_int16_align_right(
-        out,
-        temp
-    );
-    out.print(F(" -> "));
+    // Print &out = Serial;
+    //
+    // slight_DebugMenu::print_Binary_32(
+    //     out,
+    //     measurement_value
+    // );
+    // out.print(F("; "));
+    // slight_DebugMenu::print_int32_align_right(
+    //     out,
+    //     measurement_value
+    // );
+    // out.print(F(" -> "));
+    // slight_DebugMenu::print_int16_align_right(
+    //     out,
+    //     temp
+    // );
+    // out.print(F(" -> "));
 
     // slight_DebugMenu::print_Binary_32(
     //     out,
@@ -432,15 +462,13 @@ float slight_FDC1004::convert_measurement_to_capacitance(
     //     temp
     // );
     // out.print(F("; "));
-    out.print(
-        capacitance
-    );
+    // out.print(
+    //     capacitance
+    // );
     // out.print(F("; "));
     // out.print(
     //     instance->capacitance_get(slight_FDC1004::MESA_1)
     // );
-
-
     // out.print("");
     // slight_DebugMenu::print_uint32_align_right(
     //     out,

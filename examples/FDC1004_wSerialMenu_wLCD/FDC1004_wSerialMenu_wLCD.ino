@@ -633,7 +633,7 @@ void sensor_event(slight_FDC1004 *instance) {
     Print &out = Serial;
 
     lcd_update();
-    out.println();
+    // out.println();
 
     // uint32_t temp = 0;
     //

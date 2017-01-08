@@ -182,6 +182,13 @@ public:
     float capacitance_get(uint8_t measurement_id);
     float capacitance_get(measurement_id_t measurement_id);
 
+    int16_t capacitance_integer_get(uint8_t measurement_id);
+    int16_t capacitance_integer_get(measurement_id_t measurement_id);
+
+    static int16_t convert_measurement_to_capacitance_integer(
+        int32_t measurement_value
+    );
+
     static float convert_measurement_to_capacitance(
         int32_t measurement_value,
         uint16_t offset

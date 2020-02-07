@@ -7,7 +7,7 @@
     basic library api is compatible to https://github.com/s-light/slight_CAP1188
 
     written by stefan krueger (s-light),
-        github@s-light.eu, http://s-light.eu, https://github.com/s-light/
+        git@s-light.eu, http://s-light.eu, https://github.com/s-light/
 
 ******************************************************************************/
 /******************************************************************************

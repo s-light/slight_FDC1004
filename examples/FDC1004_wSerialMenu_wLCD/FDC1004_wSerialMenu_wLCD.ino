@@ -20,11 +20,11 @@
         ~ slight_FDC1004
         ~ slight_DebugMenu
             written by stefan krueger (s-light),
-                github@s-light.eu, http://s-light.eu, https://github.com/s-light/
+                git@s-light.eu, http://s-light.eu, https://github.com/s-light/
             license: MIT
 
     written by stefan krueger (s-light),
-        github@s-light.eu, http://s-light.eu, https://github.com/s-light/
+        git@s-light.eu, http://s-light.eu, https://github.com/s-light/
 
     changelog / history
         27.12.2016 12:10 created (based on MPR121_Simple_wMenu.ino)
@@ -213,34 +213,37 @@ void lcd_init(Print &out) {
 }
 
 void lcd_update() {
-    lcd.setCursor(0, 0);
     // lcd.print(F("FDC1004 "));
-    slight_DebugMenu::print_uint32_align_right(
+
+    lcd.setCursor(0, 0);
+    slight_DebugMenu::print_int16_align_right(
         lcd,
-        mySensor.measurement_get(slight_FDC1004::MESA_1)
+        mySensor.capacitance_integer_get(slight_FDC1004::MESA_1)
     );
-    // lcd.print(
-    //     mySensor.capacitance_get(slight_FDC1004::MESA_1)
-    // );
 
-    // lcd.setCursor(0, 1);
-    // slight_DebugMenu::print_uint32_align_right(
+    lcd.setCursor(10, 0);
+    slight_DebugMenu::print_int16_align_right(
+        lcd,
+        mySensor.capacitance_integer_get(slight_FDC1004::MESA_2)
+    );
+
+    lcd.setCursor(0, 1);
+    // slight_DebugMenu::print_int16_align_right(
     //     lcd,
-    //     mySensor.measurement_get(slight_FDC1004::MESA_2)
+    //     mySensor.capacitance_integer_get(slight_FDC1004::MESA_3)
     // );
-    // lcd.print(F("="));
-    // lcd.print(
-    //     mySensor.capacitance_get(slight_FDC1004::MESA_2)
-    // );
-
-    lcd.setCursor(0, 1);
-    lcd.print(F("       "));
-    lcd.setCursor(0, 1);
-    lcd.print(
-        mySensor.capacitance_get(slight_FDC1004::MESA_1)
+    slight_DebugMenu::print_int16_align_right(
+        lcd,
+        mySensor.capacitance_integer_get(slight_FDC1004::MESA_1) +
+        mySensor.capacitance_integer_get(slight_FDC1004::MESA_2)
     );
 
-    // lcd.print(temp);
+    lcd.setCursor(10, 1);
+    slight_DebugMenu::print_int16_align_right(
+        lcd,
+        mySensor.capacitance_integer_get(slight_FDC1004::MESA_4)
+    );
+
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -615,6 +618,8 @@ void mySensor_init(Print &out) {
         mySensor.update_interval_set(500);
         mySensor.sensor_event_set_callback(sensor_event);
 
+        // start things
+        mySensor_config(out);
     }
     out.println(F("\t finished."));
 }
@@ -869,39 +874,87 @@ void mySensor_config(Print &out) {
         // slight_FDC1004::config_chB_CIN2
         slight_FDC1004::config_chB_DISABLED
     );
+    mySensor.measurement_config_write(slight_FDC1004::MESA_1);
 
-    // out.println(F("\t   MESA_2: (chA = CIN2; chB = DISABLED;) "));
+    out.println(F("\t   MESA_2: (chA = CIN2; chB = DISABLED;) "));
+    mySensor.measurement_config_chA_set(
+        slight_FDC1004::MESA_2,
+        slight_FDC1004::config_chA_CIN2
+    );
+    mySensor.measurement_config_chB_set(
+        slight_FDC1004::MESA_2,
+        slight_FDC1004::config_chB_DISABLED
+    );
+    mySensor.measurement_config_CAPDAC_set(
+        slight_FDC1004::MESA_2,
+        0
+    );
+    mySensor.measurement_config_write(slight_FDC1004::MESA_2);
+
+    // out.println(F("\t   MESA_3: (chA = CIN1; chB = CIN2;) "));
+    // out.println(F("\t   MESA_3: (chA = CIN1; chB = CAPDAC; CAPDAC = 3,125pF) "));
     // mySensor.measurement_config_chA_set(
-    //     slight_FDC1004::MESA_1,
-    //     slight_FDC1004::config_chA_CIN2
+    //     slight_FDC1004::MESA_3,
+    //     slight_FDC1004::config_chA_CIN1
     // );
     // mySensor.measurement_config_chB_set(
-    //     slight_FDC1004::MESA_1,
+    //     slight_FDC1004::MESA_3,
+    //     slight_FDC1004::config_chB_CAPDAC
+    //     // slight_FDC1004::config_chB_CIN2
+    // );
+    // mySensor.measurement_config_CAPDAC_set(
+    //     slight_FDC1004::MESA_3,
+    //     0
+    // );
+    // // 8*3,125=25pF
+    // // mySensor.measurement_config_CAPDAC_set(slight_FDC1004::MESA_3, 0b01000);
+    // mySensor.measurement_config_CAPDAC_set(slight_FDC1004::MESA_3, 0b00001);
+    // mySensor.measurement_config_write(slight_FDC1004::MESA_3);
+
+    // out.println(F("\t   MESA_4: (chA = CIN4; chB = DISABLED;) "));
+    // mySensor.measurement_config_chA_set(
+    //     slight_FDC1004::MESA_4,
+    //     slight_FDC1004::config_chA_CIN4
+    // );
+    // mySensor.measurement_config_chB_set(
+    //     slight_FDC1004::MESA_4,
     //     slight_FDC1004::config_chB_DISABLED
     // );
     // mySensor.measurement_config_CAPDAC_set(
-    //     slight_FDC1004::MESA_1,
+    //     slight_FDC1004::MESA_4,
     //     0
     // );
+    // mySensor.measurement_config_write(slight_FDC1004::MESA_4);
 
-    // write config to device
-    out.println(F("\t   write config to device."));
-    mySensor.measurement_config_write(slight_FDC1004::MESA_1);
-    // mySensor.measurement_config_write(slight_FDC1004::MESA_2);
+    out.println(F("\t   writen configs to device."));
+
 
     // fdc config
-    // enable measurement 1
-    out.println(F("\t   fdc config: (MESA_1 init=enabled; rate=100S/s; repeate=true;) "));
-    mySensor.measurement_init_set(slight_FDC1004::MESA_1, true);
-    // mySensor.measurement_init_set(slight_FDC1004::MESA_2, true);
+    out.println(F("\t   fdc config: (rate=100S/s; repeate=true; "));
     // set speed to 100S/s
     mySensor.measurement_rate_set(slight_FDC1004::repeate_rate_100Ss);
     // enable auto repeate
     mySensor.measurement_repeate_set(true);
+    // enable measurement 1
+    out.print(F("MESA_1"));
+    mySensor.measurement_init_set(slight_FDC1004::MESA_1, true);
+    // enable measurement 2
+    out.print(F(", MESA_2"));
+    mySensor.measurement_init_set(slight_FDC1004::MESA_2, true);
+    // enable measurement 3
+    // out.print(F(", MESA_3"));
+    // mySensor.measurement_init_set(slight_FDC1004::MESA_3, true);
+    // enable measurement 4
+    // out.print(F(", MESA_4"));
+    // mySensor.measurement_init_set(slight_FDC1004::MESA_4, true);
+    out.println(F(" init=enabled; )"));
 
     // write config to device
     mySensor.fdc_config_write();
     out.println(F("\t   write config to device."));
+
+    out.println(F("\t  clear lcd."));
+    lcd.clear();
 }
 
 void mySensor_readwritetest(Print &out) {
